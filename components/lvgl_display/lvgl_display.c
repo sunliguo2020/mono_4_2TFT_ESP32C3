@@ -13,8 +13,8 @@
 #include "esp_lcd_panel_st7306_bw.h"
 
 #define TAG "lvgl_display"
-#define LVGL_DISPLAY_WAKE_RESET 0
-#define LVGL_DISPLAY_WAKE_REINIT 0
+#define LVGL_DISPLAY_WAKE_RESET 1  // wake reset
+#define LVGL_DISPLAY_WAKE_REINIT 1 // wake re-init
 
 #define DISP_HOR_RES TFT_WIDTH
 #define DISP_VER_RES TFT_HEIGHT
@@ -165,7 +165,7 @@ void lvgl_display_wakeup(void)
         return;
     }
 
-    // Stable wake path with reduced flicker: reset/init without full-screen invalidate
+    // Wake path: reset/init then refresh (no display off)
 #if LVGL_DISPLAY_WAKE_RESET
     ESP_ERROR_CHECK(esp_lcd_panel_reset(s_panel_handle));
     vTaskDelay(pdMS_TO_TICKS(20));
@@ -179,9 +179,24 @@ void lvgl_display_wakeup(void)
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(s_panel_handle, true));
 
     lvgl_port_lock(0);
-    // No full-screen invalidate here; UI update calls will invalidate only needed areas
+    lv_obj_invalidate(lv_scr_act());
+    lv_refr_now(NULL);
     lvgl_port_unlock();
     ESP_LOGI(TAG, "lvgl refresh done");
+}
+
+void lvgl_display_sleep(bool sleep)
+{
+    if (!s_panel_handle) {
+        ESP_LOGW(TAG, "panel handle null, skip sleep");
+        return;
+    }
+    esp_err_t err = esp_lcd_panel_disp_sleep(s_panel_handle, sleep);
+    if (err == ESP_ERR_NOT_SUPPORTED) {
+        ESP_LOGW(TAG, "panel sleep not supported");
+        return;
+    }
+    ESP_ERROR_CHECK(err);
 }
 
 

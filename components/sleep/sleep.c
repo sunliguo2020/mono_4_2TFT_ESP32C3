@@ -147,6 +147,8 @@ static void sleep_task(void *arg) {
     // Update immediately so UI doesn't lag up to a minute after sync
     lvgl_port_lock(0);
     update_time_labels();
+    lv_obj_invalidate(lv_scr_act());
+    lv_refr_now(NULL);
     lvgl_port_unlock();
 
     int sleep_sec = 60 - timeinfo.tm_sec;
@@ -177,7 +179,7 @@ static void sleep_task(void *arg) {
 
     lvgl_port_lock(0);
     update_time_labels();
-    // Force refresh after wake to avoid minute lag on screen
+    lv_obj_invalidate(lv_scr_act());
     lv_refr_now(NULL);
     lvgl_port_unlock();
   }
