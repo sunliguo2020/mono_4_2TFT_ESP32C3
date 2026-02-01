@@ -13,8 +13,8 @@
 #include "esp_lcd_panel_st7306_bw.h"
 
 #define TAG "lvgl_display"
-#define LVGL_DISPLAY_WAKE_RESET 1  // wake reset
-#define LVGL_DISPLAY_WAKE_REINIT 1 // wake re-init
+#define LVGL_DISPLAY_WAKE_RESET 0  // wake reset
+#define LVGL_DISPLAY_WAKE_REINIT 0 // wake re-init
 
 #define DISP_HOR_RES TFT_WIDTH
 #define DISP_VER_RES TFT_HEIGHT
@@ -24,6 +24,53 @@
 
 static esp_lcd_panel_io_handle_t s_io_handle = NULL;
 static esp_lcd_panel_handle_t s_panel_handle = NULL;
+static bool s_display_sleeping = false;
+
+static esp_err_t st7306_send_cmd(uint8_t cmd, const uint8_t *params, size_t len)
+{
+    if (!s_io_handle) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    return esp_lcd_panel_io_tx_param(s_io_handle, cmd, params, len);
+}
+
+static esp_err_t st7306_set_power_regs(void)
+{
+    // VSHP/VSLP/VSHN/VSLN + source voltage select, per vendor sequence
+    esp_err_t err = st7306_send_cmd(0xC1, (uint8_t[]) { 115, 0x3E, 0x3C, 0x3C }, 4);
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0xC2, (uint8_t[]) { 0x00, 0x21, 0x23, 0x23 }, 4);
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0xC4, (uint8_t[]) { 50, 0x5C, 0x5A, 0x5A }, 4);
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0xC5, (uint8_t[]) { 50, 0x35, 0x37, 0x37 }, 4);
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0xC9, (uint8_t[]) { 0x00 }, 1);
+    if (err != ESP_OK) return err;
+    return ESP_OK;
+}
+
+static esp_err_t st7306_restore_wake_regs(void)
+{
+    // Restore key settings after LPM->HPM, per vendor init sequence
+    esp_err_t err = st7306_send_cmd(0x36, (uint8_t[]) { 0x48 }, 1); // MADCTL
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0x3A, (uint8_t[]) { 0x11 }, 1); // data format
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0xB9, (uint8_t[]) { 0x20 }, 1); // gamma mode
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0xB8, (uint8_t[]) { 0x29 }, 1); // panel setting
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0x2A, (uint8_t[]) { 0x05, 0x36 }, 2); // column
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0x2B, (uint8_t[]) { 0x00, 0xC7 }, 2); // row
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0x35, (uint8_t[]) { 0x00 }, 1); // TE
+    if (err != ESP_OK) return err;
+    err = st7306_send_cmd(0xD0, (uint8_t[]) { 0xFF }, 1); // auto power
+    if (err != ESP_OK) return err;
+    return ESP_OK;
+}
 
 static void st7306_align_invalidate_cb(lv_event_t *e)
 {
@@ -178,25 +225,47 @@ void lvgl_display_wakeup(void)
     ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(s_panel_handle, false));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(s_panel_handle, true));
 
-    lvgl_port_lock(0);
-    lv_obj_invalidate(lv_scr_act());
-    lv_refr_now(NULL);
-    lvgl_port_unlock();
+    // Do not force a full-screen refresh here; UI updates will invalidate as needed.
     ESP_LOGI(TAG, "lvgl refresh done");
 }
 
 void lvgl_display_sleep(bool sleep)
 {
-    if (!s_panel_handle) {
+    if (!s_panel_handle || !s_io_handle) {
         ESP_LOGW(TAG, "panel handle null, skip sleep");
         return;
     }
-    esp_err_t err = esp_lcd_panel_disp_sleep(s_panel_handle, sleep);
-    if (err == ESP_ERR_NOT_SUPPORTED) {
-        ESP_LOGW(TAG, "panel sleep not supported");
-        return;
+    if (sleep) {
+        if (s_display_sleeping) {
+            return;
+        }
+        // Per ST7306 SLPIN/SLPOUT sequence: enter sleep (no reset/init)
+        esp_err_t err = st7306_send_cmd(0x10, NULL, 0); // SLPIN
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "sleep-in failed: 0x%x", (unsigned)err);
+            return;
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+        s_display_sleeping = true;
+    } else {
+        if (!s_display_sleeping) {
+            return;
+        }
+        // Exit sleep, then restore critical regs and display on
+        esp_err_t err = st7306_send_cmd(0x11, NULL, 0); // SLPOUT
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "sleep-out failed: 0x%x", (unsigned)err);
+            return;
+        }
+        vTaskDelay(pdMS_TO_TICKS(120));
+        err = st7306_restore_wake_regs();
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "restore regs failed: 0x%x", (unsigned)err);
+        }
+        (void)st7306_send_cmd(0x29, NULL, 0); // Display on
+        (void)st7306_send_cmd(0x20, NULL, 0); // Inversion off
+        s_display_sleeping = false;
     }
-    ESP_ERROR_CHECK(err);
 }
 
 

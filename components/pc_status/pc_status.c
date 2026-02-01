@@ -12,6 +12,7 @@
 #include "esp_lvgl_port.h"
 #include "esp_tls.h"
 #include "lvgl_display.h"
+#include "lvgl.h"
 #include "lwip/dns.h"
 #include "lwip/inet.h"
 #include "lwip/netdb.h"
@@ -80,7 +81,7 @@ static void apply_pc_state(pc_state_t state) {
   return;
 #endif
 
-  if (!lvgl_port_lock(100)) {
+  if (!lvgl_port_lock(500)) {
     ESP_LOGW(TAG, "lvgl lock timeout, skip ui update");
     return;
   }
@@ -88,6 +89,10 @@ static void apply_pc_state(pc_state_t state) {
     lvgl_ui_set_pc_state_image(true);
   } else if (state == PC_STATE_OFF) {
     lvgl_ui_set_pc_state_image(false);
+  }
+  lv_display_t *disp = lv_display_get_default();
+  if (disp) {
+    lv_refr_now(disp);
   }
   lvgl_port_unlock();
 }

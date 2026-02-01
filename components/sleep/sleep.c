@@ -7,14 +7,20 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
+#include "driver/gpio.h"
 #include "gui_guider.h"
 #include "lvgl_display.h"
 #include "Wifi_hw_Y.h"
+#include "MONO_TFT.h"
+#include "lvgl.h"
 #include <time.h>
 
 #define TAG "sleep"
 #define SLEEP_WAKEUP_SEC 60
 #define UPDATE_WAIT_TIMEOUT_MS 20000
+#define DISPLAY_KEEP_ON (CS_PIN < 0)
+#define DISPLAY_USE_PANEL_SLEEP (!DISPLAY_KEEP_ON)
+#define DISPLAY_SLEEP_DELAY_MS 80
 
 #define UPDATE_BIT_HTTP (1U << 0)
 #define UPDATE_BIT_BAT  (1U << 1)
@@ -30,6 +36,29 @@ typedef struct {
   sleep_update_cb_t cb;
   EventBits_t bit;
 } update_task_ctx_t;
+
+static void display_gpio_hold(bool enable) {
+  const int pins[] = {RST_PIN, CS_PIN, DC_PIN, SCLK_PIN, SDI_PIN};
+
+  if (enable) {
+    if (RST_PIN >= 0) {
+      gpio_set_level(RST_PIN, 1);
+    }
+    for (size_t i = 0; i < sizeof(pins) / sizeof(pins[0]); i++) {
+      if (pins[i] < 0) {
+        continue;
+      }
+      gpio_hold_en(pins[i]);
+    }
+  } else {
+    for (size_t i = 0; i < sizeof(pins) / sizeof(pins[0]); i++) {
+      if (pins[i] < 0) {
+        continue;
+      }
+      gpio_hold_dis(pins[i]);
+    }
+  }
+}
 
 static bool ensure_wifi_connected(TickType_t wait_ticks) {
   if (wifi_is_connected()) {
@@ -74,6 +103,31 @@ static void update_time_labels(void) {
   lvgl_ui_set_time_labels(date_buf, hour_buf, min_buf);
 }
 
+static void force_lvgl_refresh(bool full) {
+  lv_display_t *disp = lv_display_get_default();
+  if (!disp) {
+    return;
+  }
+  if (full) {
+    lv_obj_t *scr = lv_scr_act();
+    if (scr) {
+      lv_obj_invalidate(scr);
+    }
+  }
+  lv_refr_now(disp);
+}
+
+static void force_lvgl_refresh_twice(void) {
+  for (int i = 0; i < 2; i++) {
+    if (lvgl_port_lock(200)) {
+      force_lvgl_refresh(true);
+      lvgl_port_unlock();
+    } else {
+      ESP_LOGW(TAG, "lvgl lock timeout during refresh pass %d", i);
+    }
+    vTaskDelay(pdMS_TO_TICKS(50));
+  }
+}
 static void update_task(void *arg) {
   update_task_ctx_t *ctx = (update_task_ctx_t *)arg;
   if (ctx && ctx->cb) {
@@ -145,11 +199,12 @@ static void sleep_task(void *arg) {
     time(&now);
     localtime_r(&now, &timeinfo);
     // Update immediately so UI doesn't lag up to a minute after sync
-    lvgl_port_lock(0);
-    update_time_labels();
-    lv_obj_invalidate(lv_scr_act());
-    lv_refr_now(NULL);
-    lvgl_port_unlock();
+    if (lvgl_port_lock(200)) {
+      update_time_labels();
+      lvgl_port_unlock();
+    } else {
+      ESP_LOGW(TAG, "lvgl lock timeout, skip time update");
+    }
 
     int sleep_sec = 60 - timeinfo.tm_sec;
     if (sleep_sec <= 0) {
@@ -160,12 +215,20 @@ static void sleep_task(void *arg) {
       ESP_LOGW(TAG, "skip updates, wifi not connected");
     } else {
       run_update_tasks_and_wait();
+      force_lvgl_refresh_twice();
+      vTaskDelay(pdMS_TO_TICKS(120));
     }
 
-    lvgl_port_lock(0);
-    lv_refr_now(NULL);
-    lvgl_port_unlock();
+    // Stop LVGL timer/task before sleep to avoid flush during sleep
+    lvgl_port_stop();
 
+    if (DISPLAY_USE_PANEL_SLEEP) {
+      lvgl_display_sleep(true);
+      vTaskDelay(pdMS_TO_TICKS(DISPLAY_SLEEP_DELAY_MS));
+    } else if (DISPLAY_KEEP_ON) {
+      ESP_LOGI(TAG, "display keep-on enabled (CS tied low)");
+    }
+    display_gpio_hold(true);
     esp_err_t wk_ret = esp_sleep_enable_timer_wakeup(
         (uint64_t)sleep_sec * 1000000ULL);
     ESP_LOGI(TAG, "enter light sleep for %d sec, wake cfg ret=0x%x",
@@ -173,15 +236,23 @@ static void sleep_task(void *arg) {
     esp_err_t slp_ret = esp_light_sleep_start();
     ESP_LOGI(TAG, "woke from light sleep, ret=0x%x, cause=%d",
              (unsigned int)slp_ret, (int)esp_sleep_get_wakeup_cause());
-    lvgl_display_wakeup();
+    display_gpio_hold(false);
+    if (DISPLAY_USE_PANEL_SLEEP) {
+      lvgl_display_sleep(false);
+      lvgl_display_wakeup();
+    }
+    lvgl_port_resume();
+    lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
     esp_wifi_set_ps(WIFI_PS_NONE);
-    vTaskDelay(pdMS_TO_TICKS(200));
+    vTaskDelay(pdMS_TO_TICKS(120));
 
-    lvgl_port_lock(0);
-    update_time_labels();
-    lv_obj_invalidate(lv_scr_act());
-    lv_refr_now(NULL);
-    lvgl_port_unlock();
+    if (lvgl_port_lock(200)) {
+      update_time_labels();
+      force_lvgl_refresh(true);
+      lvgl_port_unlock();
+    } else {
+      ESP_LOGW(TAG, "lvgl lock timeout after wake");
+    }
   }
 }
 

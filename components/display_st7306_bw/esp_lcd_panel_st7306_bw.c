@@ -364,8 +364,7 @@ static esp_err_t panel_st7306_init(esp_lcd_panel_t *panel)
     ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xC2, (uint8_t[]) { 0x00, 0x21, 0x23, 0x23 }, 4), TAG, "cmd 0xC2");
     ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xC4, (uint8_t[]) { 50, 0x5C, 0x5A, 0x5A }, 4), TAG, "cmd 0xC4");
     ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xC5, (uint8_t[]) { 50, 0x35, 0x37, 0x37 }, 4), TAG, "cmd 0xC5");
-    ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xD8, (uint8_t[]) { 0xA6 }, 1), TAG, "cmd 0xD8");
-    ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xE9, NULL, 0), TAG, "cmd 0xE9");
+    ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xD8, (uint8_t[]) { 0xA6, 0xE9 }, 2), TAG, "cmd 0xD8");
     ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xB2, (uint8_t[]) { 0x12 }, 1), TAG, "cmd 0xB2");
     ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xB3, (uint8_t[]) { 0xE5, 0xF6, 0x17, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x71 }, 10), TAG, "cmd 0xB3");
     ESP_RETURN_ON_ERROR(st7306_send_cmd_params(st7306, 0xB4, (uint8_t[]) { 0x05, 0x46, 0x77, 0x77, 0x77, 0x77, 0x76, 0x45 }, 8), TAG, "cmd 0xB4");
