@@ -1,7 +1,7 @@
 #pragma once
 
 #define TE_PIN  1
-#define RST_PIN 2
+#define RST_PIN 20
 #define DC_PIN  10
 #define CS_PIN  -1
 #define SCLK_PIN 4

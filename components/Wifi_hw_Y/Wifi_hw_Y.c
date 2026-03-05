@@ -26,6 +26,7 @@ EventGroupHandle_t s_wifi_event_group; // 创建一个事件组
 esp_netif_t *sta_netif = NULL;         // wifi网络接口
 
 // 静态函数，处理事件
+// Wi-Fi/IP event handler for STA connection lifecycle.
 static void event_handler(void *arg, esp_event_base_t event_base,
                           int32_t event_id, void *event_data) {
   // 静态变量，记录重试次数
@@ -38,6 +39,9 @@ static void event_handler(void *arg, esp_event_base_t event_base,
   // 如果事件基是WIFI_EVENT，事件ID是WIFI_EVENT_STA_DISCONNECTED
   else if (event_base == WIFI_EVENT &&
            event_id == WIFI_EVENT_STA_DISCONNECTED) {
+    wifi_event_sta_disconnected_t *disc =
+        (wifi_event_sta_disconnected_t *)event_data;
+    ESP_LOGW(TAG, "sta disconnected, reason=%d", disc ? (int)disc->reason : -1);
     wifi_connected = false; // wifi����״̬��־λ
     xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     // lvgl_port_lock(0);
@@ -87,6 +91,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
   }
 }
 
+// Initialize Wi-Fi STA interface and start connection.
 void wifi_init_sta(void) {
     // ����wifi�¼���
   s_wifi_event_group = xEventGroupCreate();
@@ -125,6 +130,7 @@ void wifi_init_sta(void) {
 
 }
 
+// Initialize NVS for Wi-Fi storage.
 static void wifi_nvs_init(void) {
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
@@ -136,10 +142,12 @@ static void wifi_nvs_init(void) {
   ESP_ERROR_CHECK(ret);
 }
 
+// Placeholder for time download logic (unused).
 void wifi_download_time(void) {
 
 }
 
+// Wait for connection result and notify UI.
 void wifi_download_init(void) {
   // �ȴ�WiFi���ӳɹ���ʧ��
   EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
@@ -154,16 +162,19 @@ void wifi_download_init(void) {
   }
 }
 
+// Public Wi-Fi init sequence (NVS + STA + wait).
 void wifi_hw_init(void) {
   wifi_nvs_init(); // 初始化NVS
   wifi_init_sta(); // 初始化wifi
   wifi_download_init(); // 初始化wifi下载
 }
 
+// Return cached STA connection state.
 bool wifi_is_connected(void) {
   return wifi_connected;
 }
 
+// Block until STA is connected or timeout.
 bool wifi_wait_connected(TickType_t ticks_to_wait) {
   EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdFALSE, ticks_to_wait);
   return (bits & WIFI_CONNECTED_BIT) != 0;

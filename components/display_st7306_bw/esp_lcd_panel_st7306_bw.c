@@ -64,6 +64,7 @@ static esp_err_t panel_st7306_swap_xy(esp_lcd_panel_t *panel, bool swap_axes);
 static esp_err_t panel_st7306_set_gap(esp_lcd_panel_t *panel, int x_gap, int y_gap);
 static esp_err_t panel_st7306_disp_on_off(esp_lcd_panel_t *panel, bool on_off);
 
+// Convert RGB565 pixel to 2-bit grayscale value.
 static uint8_t st7306_rgb565_to_gray2(uint16_t color)
 {
     uint8_t r5 = (uint8_t)((color >> 11) & 0x1F);
@@ -88,6 +89,7 @@ static uint8_t st7306_rgb565_to_gray2(uint16_t color)
     return ST7306_COLOR_11;
 }
 
+// Pack a 2-bit pixel into the controller's packed buffer format.
 static inline void st7306_write_point(st7306_panel_t *st7306, uint32_t x, uint32_t y, uint16_t data)
 {
     uint32_t real_x = x / 2;
@@ -115,6 +117,7 @@ static inline void st7306_write_point(st7306_panel_t *st7306, uint32_t x, uint32
     }
 }
 
+// Apply swap/mirror transform to a single point.
 static inline void st7306_transform_point(const st7306_panel_t *st7306, int *x, int *y)
 {
     int tx = *x;
@@ -138,6 +141,7 @@ static inline void st7306_transform_point(const st7306_panel_t *st7306, int *x, 
     *y = ty;
 }
 
+// Apply swap/mirror transform to an area.
 static inline void st7306_transform_area(const st7306_panel_t *st7306, int *x1, int *y1, int *x2, int *y2)
 {
     int tx1 = *x1;
@@ -174,11 +178,13 @@ static inline void st7306_transform_area(const st7306_panel_t *st7306, int *x1, 
     *y2 = ty2;
 }
 
+// Send a command with optional parameters over panel IO.
 static esp_err_t st7306_send_cmd_params(st7306_panel_t *st7306, uint8_t cmd, const uint8_t *params, size_t len)
 {
     return esp_lcd_panel_io_tx_param(st7306->io, cmd, params, len);
 }
 
+// Set full frame address window.
 static esp_err_t st7306_set_full_address(st7306_panel_t *st7306)
 {
     uint8_t col_end = (uint8_t)(ST7306_COL_START + (st7306->data_width / 3) - 1);
@@ -197,6 +203,7 @@ static esp_err_t st7306_set_full_address(st7306_panel_t *st7306)
     return ESP_OK;
 }
 
+// Set a partial address window for region flush.
 static esp_err_t st7306_set_address_window(st7306_panel_t *st7306, uint8_t col_start, uint8_t col_end,
                                            uint8_t row_start, uint8_t row_end)
 {
@@ -213,6 +220,7 @@ static esp_err_t st7306_set_address_window(st7306_panel_t *st7306, uint8_t col_s
     return ESP_OK;
 }
 
+// Flush a region from the packed buffer to panel RAM.
 static esp_err_t st7306_flush_region(st7306_panel_t *st7306, int x1, int y1, int x2, int y2)
 {
     x1 = (x1 / 6) * 6;
@@ -265,6 +273,7 @@ static esp_err_t st7306_flush_region(st7306_panel_t *st7306, int x1, int y1, int
     return ESP_OK;
 }
 
+// Create and initialize an ST7306 BW panel driver.
 esp_err_t esp_lcd_new_panel_st7306_bw(const esp_lcd_panel_io_handle_t io,
                                       const esp_lcd_panel_dev_config_t *panel_dev_config,
                                       esp_lcd_panel_handle_t *ret_panel)
@@ -328,6 +337,7 @@ err:
     return ret;
 }
 
+// Release panel resources.
 static esp_err_t panel_st7306_del(esp_lcd_panel_t *panel)
 {
     st7306_panel_t *st7306 = __containerof(panel, st7306_panel_t, base);
@@ -341,6 +351,7 @@ static esp_err_t panel_st7306_del(esp_lcd_panel_t *panel)
     return ESP_OK;
 }
 
+// Toggle hardware reset pin.
 static esp_err_t panel_st7306_reset(esp_lcd_panel_t *panel)
 {
     st7306_panel_t *st7306 = __containerof(panel, st7306_panel_t, base);
@@ -353,6 +364,7 @@ static esp_err_t panel_st7306_reset(esp_lcd_panel_t *panel)
     return ESP_OK;
 }
 
+// Send ST7306 init sequence.
 static esp_err_t panel_st7306_init(esp_lcd_panel_t *panel)
 {
     st7306_panel_t *st7306 = __containerof(panel, st7306_panel_t, base);
@@ -393,6 +405,7 @@ static esp_err_t panel_st7306_init(esp_lcd_panel_t *panel)
     return ESP_OK;
 }
 
+// Convert RGB565 area to packed grayscale and flush to panel.
 static esp_err_t panel_st7306_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_start,
                                           int x_end, int y_end, const void *color_data)
 {
@@ -461,6 +474,7 @@ static esp_err_t panel_st7306_draw_bitmap(esp_lcd_panel_t *panel, int x_start, i
     return st7306_flush_region(st7306, x_start, y_start, x_end - 1, y_end - 1);
 }
 
+// Toggle display inversion.
 static esp_err_t panel_st7306_invert_color(esp_lcd_panel_t *panel, bool invert_color_data)
 {
     st7306_panel_t *st7306 = __containerof(panel, st7306_panel_t, base);
@@ -468,6 +482,7 @@ static esp_err_t panel_st7306_invert_color(esp_lcd_panel_t *panel, bool invert_c
     return st7306_send_cmd_params(st7306, cmd, NULL, 0);
 }
 
+// Configure mirror flags (no immediate flush).
 static esp_err_t panel_st7306_mirror(esp_lcd_panel_t *panel, bool mirror_x, bool mirror_y)
 {
     st7306_panel_t *st7306 = __containerof(panel, st7306_panel_t, base);
@@ -476,6 +491,7 @@ static esp_err_t panel_st7306_mirror(esp_lcd_panel_t *panel, bool mirror_x, bool
     return ESP_OK;
 }
 
+// Configure axis swap flag (no immediate flush).
 static esp_err_t panel_st7306_swap_xy(esp_lcd_panel_t *panel, bool swap_axes)
 {
     st7306_panel_t *st7306 = __containerof(panel, st7306_panel_t, base);
@@ -483,6 +499,7 @@ static esp_err_t panel_st7306_swap_xy(esp_lcd_panel_t *panel, bool swap_axes)
     return ESP_OK;
 }
 
+// Set display gap offsets.
 static esp_err_t panel_st7306_set_gap(esp_lcd_panel_t *panel, int x_gap, int y_gap)
 {
     st7306_panel_t *st7306 = __containerof(panel, st7306_panel_t, base);
@@ -491,6 +508,7 @@ static esp_err_t panel_st7306_set_gap(esp_lcd_panel_t *panel, int x_gap, int y_g
     return ESP_OK;
 }
 
+// Turn display on/off.
 static esp_err_t panel_st7306_disp_on_off(esp_lcd_panel_t *panel, bool on_off)
 {
     st7306_panel_t *st7306 = __containerof(panel, st7306_panel_t, base);

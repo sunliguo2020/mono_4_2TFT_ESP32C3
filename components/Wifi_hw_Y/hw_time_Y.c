@@ -23,12 +23,17 @@
 static bool s_sntp_started = false;
 static SemaphoreHandle_t s_time_sync_sem = NULL;
 static volatile bool s_time_synced = false;
+static volatile bool s_time_sync_inflight = false;
+static time_t s_last_sync_time = 0;
 
+// SNTP sync callback: store time and signal waiters.
 static void time_sync_notification_cb(struct timeval *tv) {
   if (tv) {
     settimeofday(tv, NULL); // ensure RTC keeps the synced time
+    s_last_sync_time = tv->tv_sec;
   }
   s_time_synced = true;
+  s_time_sync_inflight = false;
   if (s_time_sync_sem) {
     xSemaphoreGive(s_time_sync_sem);
   }
@@ -38,6 +43,7 @@ static void time_sync_notification_cb(struct timeval *tv) {
 /**
  * @brief 时间同步等待任务函数
  * 该任务用于等待系统时间同步完成，并在同步后打印当前时�? * @param arg 任务参数（未使用�? */
+// Wait for SNTP sync and update UI once.
 static void time_sync_wait_task(void *arg) {
   (void)arg;
   int retry = 0;
@@ -64,6 +70,7 @@ static void time_sync_wait_task(void *arg) {
              timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
              timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
     s_time_synced = true;
+    s_last_sync_time = now;
     if (s_time_sync_sem) {
       xSemaphoreGive(s_time_sync_sem);
     }
@@ -80,22 +87,26 @@ static void time_sync_wait_task(void *arg) {
     if (strftime(min_buf, sizeof(min_buf), "%M", &timeinfo) == 0) {
       min_buf[0] = '\0';
     }
-    lvgl_port_lock(0);
     lvgl_ui_set_time_labels(date_buf, hour_buf, min_buf);
-    lvgl_port_unlock();
   }
 
+  s_time_sync_inflight = false;
   vTaskDelete(NULL);
 }
 
+// Start SNTP sync and spawn wait task.
 void hw_time_sync_start(void) {
+  if (s_time_sync_inflight) {
+    return;
+  }
   if (!s_sntp_started) {
     s_time_sync_sem = xSemaphoreCreateBinary();
     setenv("TZ", HW_TIME_TZ, 1);
     tzset();
     s_time_synced = false;
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-        esp_sntp_setservername(0, SNTP_SERVER_0);
+    esp_sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
+    esp_sntp_setservername(0, SNTP_SERVER_0);
     esp_sntp_setservername(1, SNTP_SERVER_1);
     esp_sntp_setservername(2, SNTP_SERVER_2);
     esp_sntp_set_sync_interval(SNTP_SYNC_INTERVAL_MS);
@@ -103,16 +114,40 @@ void hw_time_sync_start(void) {
     esp_sntp_init();
     s_sntp_started = true;
     ESP_LOGI(TAG, "SNTP started, interval %d ms", SNTP_SYNC_INTERVAL_MS);
+  } else if (hw_time_is_synced()) {
+    time_t now = 0;
+    time(&now);
+    if (s_last_sync_time != 0 &&
+        (now - s_last_sync_time) < (SNTP_SYNC_INTERVAL_MS / 1000)) {
+      return;
+    }
+    esp_sntp_restart();
   }
 
+  s_time_sync_inflight = true;
   xTaskCreate(time_sync_wait_task, "time_sync_wait", 4096, NULL, 5, NULL);
 }
 
+// Trigger hourly re-sync if due (uses RTC time).
+void hw_time_resync_if_due(void) {
+  time_t now = 0;
+  time(&now);
+  if (!s_sntp_started || s_last_sync_time == 0) {
+    hw_time_sync_start();
+    return;
+  }
+  if ((now - s_last_sync_time) >= (SNTP_SYNC_INTERVAL_MS / 1000)) {
+    hw_time_sync_start();
+  }
+}
+
+// Query SNTP sync status.
 bool hw_time_is_synced(void) {
   return s_time_synced ||
          esp_sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED;
 }
 
+// Block until time sync completes or timeout.
 bool hw_time_wait_for_sync(uint32_t timeout_ms) {
   if (hw_time_is_synced()) {
     return true;
@@ -125,6 +160,7 @@ bool hw_time_wait_for_sync(uint32_t timeout_ms) {
   }
   return hw_time_is_synced();
 }
+// If RTC time is unset, seed it with build time.
 void hw_time_set_default_if_unset(void) {
   time_t now = 0;
   struct tm timeinfo = {0};

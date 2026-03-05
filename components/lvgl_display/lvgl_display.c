@@ -1,6 +1,7 @@
 #include "lvgl_display.h"
 
 #include "driver/spi_master.h"
+#include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
@@ -18,14 +19,26 @@
 
 #define DISP_HOR_RES TFT_WIDTH
 #define DISP_VER_RES TFT_HEIGHT
-#define DISP_BUF_LINES 40
+#define DISP_BUF_LINES 20
 #define ST7306_ALIGN_X 6
 #define ST7306_ALIGN_Y 2
 
 static esp_lcd_panel_io_handle_t s_io_handle = NULL;
 static esp_lcd_panel_handle_t s_panel_handle = NULL;
 static bool s_display_sleeping = false;
+static bool s_display_low_power = false;
 
+static void st7306_release_gpio_hold(void)
+{
+    const int pins[] = {RST_PIN, CS_PIN, DC_PIN, SCLK_PIN, SDI_PIN};
+    for (size_t i = 0; i < sizeof(pins) / sizeof(pins[0]); i++) {
+        if (pins[i] < 0) {
+            continue;
+        }
+        gpio_hold_dis(pins[i]);
+    }
+}
+// Send a single ST7306 command with optional parameters over panel IO.
 static esp_err_t st7306_send_cmd(uint8_t cmd, const uint8_t *params, size_t len)
 {
     if (!s_io_handle) {
@@ -34,6 +47,7 @@ static esp_err_t st7306_send_cmd(uint8_t cmd, const uint8_t *params, size_t len)
     return esp_lcd_panel_io_tx_param(s_io_handle, cmd, params, len);
 }
 
+// Program ST7306 power-related registers (VSH/VSL levels + source select).
 static esp_err_t st7306_set_power_regs(void)
 {
     // VSHP/VSLP/VSHN/VSLN + source voltage select, per vendor sequence
@@ -50,6 +64,7 @@ static esp_err_t st7306_set_power_regs(void)
     return ESP_OK;
 }
 
+// Restore key display config after sleep-out (MADCTL/format/panel/addr).
 static esp_err_t st7306_restore_wake_regs(void)
 {
     // Restore key settings after LPM->HPM, per vendor init sequence
@@ -72,6 +87,13 @@ static esp_err_t st7306_restore_wake_regs(void)
     return ESP_OK;
 }
 
+// Enter/exit ST7306 low-power mode (keeps RAM content).
+static esp_err_t st7306_set_low_power_mode(bool enable)
+{
+    return st7306_send_cmd(enable ? 0x39 : 0x38, NULL, 0);
+}
+
+// Align invalidated areas to controller row/column granularity.
 static void st7306_align_invalidate_cb(lv_event_t *e)
 {
     if (lv_event_get_code(e) != LV_EVENT_INVALIDATE_AREA) {
@@ -122,6 +144,7 @@ static void st7306_align_invalidate_cb(lv_event_t *e)
     a->y2 = y2_al;
 }
 
+// Initialize SPI bus, panel IO, panel driver, and LVGL display backend.
 lv_display_t *lvgl_display_init(void)
 {
     static bool s_inited = false;
@@ -130,6 +153,9 @@ lv_display_t *lvgl_display_init(void)
     if (s_inited) {
         return s_disp;
     }
+
+    // Release any deep-sleep GPIO holds before reinitializing the panel.
+    st7306_release_gpio_hold();
 
     spi_bus_config_t buscfg = {
         .sclk_io_num = SCLK_PIN,
@@ -167,6 +193,8 @@ lv_display_t *lvgl_display_init(void)
     vTaskDelay(pdMS_TO_TICKS(50));
     ESP_ERROR_CHECK(esp_lcd_panel_init(s_panel_handle));
     vTaskDelay(pdMS_TO_TICKS(50));
+    (void)st7306_set_low_power_mode(false);
+    s_display_low_power = false;
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(s_panel_handle, false, false));
     ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(s_panel_handle, false));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(s_panel_handle, true));
@@ -203,6 +231,7 @@ lv_display_t *lvgl_display_init(void)
     return s_disp;
 }
 
+// Wake the panel after ESP light sleep (optional reset/init + re-apply flips).
 void lvgl_display_wakeup(void)
 {
     ESP_LOGI(TAG, "lvgl_display_wakeup");
@@ -224,11 +253,14 @@ void lvgl_display_wakeup(void)
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(s_panel_handle, false, false));
     ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(s_panel_handle, false));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(s_panel_handle, true));
+    (void)st7306_set_low_power_mode(false);
+    s_display_low_power = false;
 
     // Do not force a full-screen refresh here; UI updates will invalidate as needed.
     ESP_LOGI(TAG, "lvgl refresh done");
 }
 
+// Enter/exit panel sleep without full reset/init.
 void lvgl_display_sleep(bool sleep)
 {
     if (!s_panel_handle || !s_io_handle) {
@@ -265,6 +297,38 @@ void lvgl_display_sleep(bool sleep)
         (void)st7306_send_cmd(0x29, NULL, 0); // Display on
         (void)st7306_send_cmd(0x20, NULL, 0); // Inversion off
         s_display_sleeping = false;
+    }
+}
+
+// Enter/exit panel low-power mode without clearing RAM.
+void lvgl_display_low_power(bool enable)
+{
+    if (!s_panel_handle || !s_io_handle) {
+        ESP_LOGW(TAG, "panel handle null, skip low power");
+        return;
+    }
+    if (enable) {
+        if (s_display_low_power) {
+            return;
+        }
+        esp_err_t err = st7306_set_low_power_mode(true);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "low power on failed: 0x%x", (unsigned)err);
+            return;
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
+        s_display_low_power = true;
+    } else {
+        if (!s_display_low_power) {
+            return;
+        }
+        esp_err_t err = st7306_set_low_power_mode(false);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "low power off failed: 0x%x", (unsigned)err);
+            return;
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
+        s_display_low_power = false;
     }
 }
 

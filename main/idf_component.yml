@@ -1,3 +1,4 @@
 dependencies:
   lvgl/lvgl: ^9.0
   espressif/esp_lvgl_port: ^2.7.0
+  k0i05/esp_ahtxx: ^1.2.7

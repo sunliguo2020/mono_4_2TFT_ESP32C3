@@ -23,17 +23,24 @@ typedef struct
 	bool screen_main_del;
 	lv_obj_t *screen_main_cont_time;
 	lv_obj_t *screen_main_label_date;
+	lv_obj_t *screen_main_label_time_update;
 	lv_obj_t *screen_main_cont_2;
 	lv_obj_t *screen_main_label_time_hour;
 	lv_obj_t *screen_main_label_time_min;
 	lv_obj_t *screen_main_label_1;
-	lv_obj_t *screen_main_label_time_update;
 	lv_obj_t *screen_main_cont_pc_time;
-	lv_obj_t *screen_main_label_5;
 	lv_obj_t *screen_main_cont_4;
-	lv_obj_t *screen_main_label_4;
-	lv_obj_t *screen_main_label_3;
+	lv_obj_t *screen_main_label_run_hour;
+	lv_obj_t *screen_main_label_run_min;
 	lv_obj_t *screen_main_label_2;
+	lv_obj_t *screen_main_cont_6;
+	lv_obj_t *screen_main_label_20;
+	lv_obj_t *screen_main_label_19;
+	lv_obj_t *screen_main_label_18;
+	lv_obj_t *screen_main_cont_7;
+	lv_obj_t *screen_main_label_21;
+	lv_obj_t *screen_main_label_5;
+	lv_obj_t *screen_main_label_22;
 	lv_obj_t *screen_main_cont_top_bar;
 	lv_obj_t *screen_main_img_1;
 	lv_obj_t *screen_main_img_PC_statee;
@@ -44,8 +51,10 @@ typedef struct
 	lv_obj_t *screen_main_label_light_val;
 	lv_obj_t *screen_main_img_5;
 	lv_obj_t *screen_main_label_15;
+	lv_obj_t *screen_main_img_wifi_fill;
 	lv_obj_t *screen_main_img_keep_stu;
 	lv_obj_t *screen_main_label_17;
+	lv_obj_t *screen_main_label_online_flag;
 	lv_obj_t *screen_main_cont_temp_humi;
 	lv_obj_t *screen_main_label_8;
 	lv_obj_t *screen_main_label_10;
@@ -57,6 +66,7 @@ typedef struct
 	lv_obj_t *screen_main_label_11;
 	lv_obj_t *screen_main_label_16;
 	lv_obj_t *screen_main_label_fan_update;
+	lv_obj_t *screen_main_line_1;
 	lv_obj_t *screen_sleep;
 	bool screen_sleep_del;
 	lv_obj_t *screen_sleep_img_1;
@@ -91,7 +101,7 @@ extern lv_ui guider_ui;
 void setup_scr_screen_main(lv_ui *ui);
 void setup_scr_screen_sleep(lv_ui *ui);
 LV_IMAGE_DECLARE(_wifi_down_I4_33x31);
-LV_IMAGE_DECLARE(_out_line_I4_39x43);
+LV_IMAGE_DECLARE(_PC_I4_38x44);
 LV_IMAGE_DECLARE(_light_val_I4_29x25);
 LV_IMAGE_DECLARE(_battery_charge_line_I4_39x28);
 LV_IMAGE_DECLARE(_Human_Presence_Sensor_RGB565A8_36x37);
@@ -101,17 +111,19 @@ LV_IMAGE_DECLARE(_tiktok_RGB565A8_47x45);
 LV_IMAGE_DECLARE(_sleep2_RGB565_301x399);
 
 LV_FONT_DECLARE(lv_font_SMG_32)
-LV_FONT_DECLARE(lv_font_SMG_90)
 LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_24)
-LV_FONT_DECLARE(lv_font_SMG_53)
+LV_FONT_DECLARE(lv_font_SMG_90)
+LV_FONT_DECLARE(lv_font_SMG_40)
+LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_38)
 LV_FONT_DECLARE(lv_font_montserratMedium_16)
 LV_FONT_DECLARE(lv_font_montserratMedium_15)
 LV_FONT_DECLARE(lv_font_montserratMedium_12)
 LV_FONT_DECLARE(lv_font_montserratMedium_29)
+LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_16)
 LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_20)
 LV_FONT_DECLARE(lv_font_SMG_55)
 LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_17)
-LV_FONT_DECLARE(lv_font_SMG_23)
+LV_FONT_DECLARE(lv_font_SMG_21)
 
 
 #ifdef __cplusplus
