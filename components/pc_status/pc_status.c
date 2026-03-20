@@ -36,14 +36,14 @@
 #define PC_STATUS_PATH "/device/control"
 #define PC_STATUS_QUERY                                                   \
   "action=status&token="                                                  \
-  "R1JTWWNsTk9ldlhCZFBxUjhhOUsyeE1Qck5nZ3V0YU5KbkM4bkxlTjhoaHd5aUF2"      \
-  "M3FNOUVuaVBZVlNCcWhmeVpWTzJkYWRQOE1Gcjh3WmFsSDdMcFE3Y2haS2owRFl5"      \
-  "cVFOaVE3aGlzZzA9"
+  "R1JTWWNsTk9ldlhCZFBxUjhhO换成你自己的xlTjhoaHd5aUF2"      \
+  "M3FNOUVuaVBZVlNCcWhmeVpWT换成你自己的DdMcFE3Y2haS2owRFl5"      \
+  "c换成你自己的zA9"
 #define PC_POWER_ON_QUERY                                                 \
   "action=on&token="                                                      \
-  "R1JTWWNsTk9ldlhCZFBxUjhhOUsyeE1Qck5nZ3V0YU5KbkM4bkxlTjhoaHd5aUF2"      \
-  "M3FNOUVuaVBZVlNCcWhmeVpWTzJkYWRQOE1Gcjh3WmFsSDdMcFE3Y2haS2owRFl5"      \
-  "cVFOaVE3aGlzZzA9"
+  "R1JT换成你自己的xUjhhOUsyeE1Qck5nZ3V0YU5KbkM4bkxlTjhoaHd5aUF2"      \
+  "M3FNOU换成你自己的eVpWTzJkYWRQOE1Gcjh3WmFsSDdMcFE3Y2haS2owRFl5"      \
+  "cVFOa换成你自己的9"
 
 /* Root cert for open.iot.vlinkc.com, taken from howsmyssl_com_root_cert.pem. */
 extern const char howsmyssl_com_root_cert_pem_start[]
@@ -671,9 +671,9 @@ void douyin_fans_poll_once(void) {
     log_dns_info("api.tikhub.io");
   }
   const char *sec_user_id =
-      "MS4wLjABAAAABn9JEypDdtFj-poFghDl_2mqU9SWZflcdyPMT39UEAM";
+      "换成自己的";
   const char *api_token =
-      "3K0zRN8c0nmanTKTA52zmDDqPGHTYqVd70j1mlzcaMekoHeeDX2ZJm/DPw==";
+      "换成自己的";
   char query[256];
   snprintf(query, sizeof(query), "sec_user_id=%s", sec_user_id);
 

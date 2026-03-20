@@ -6,6 +6,7 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_log.h"
+#include "esp_sleep.h"
 #include "esp_lvgl_port.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -30,6 +31,30 @@ static bool s_display_low_power = false;
 
 static void st7306_release_gpio_hold(void)
 {
+    // Re-drive RST pin high before releasing hold to prevent glitch
+    if (RST_PIN >= 0) {
+        // 1. Set output level to 1 FIRST (writes to GPIO_OUT_W1TS_REG)
+        // This ensures that as soon as the output driver is enabled, it drives High.
+        gpio_set_level(RST_PIN, 1);
+        
+        // 2. Configure as Output (Open Drain)
+        gpio_config_t rst_conf = {
+            .pin_bit_mask = (1ULL << RST_PIN),
+            .mode = GPIO_MODE_OUTPUT_OD,
+            .pull_up_en = GPIO_PULLUP_ENABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE,
+        };
+        gpio_config(&rst_conf);
+        
+        // 3. Ensure level is stable
+        esp_rom_delay_us(100);
+        ESP_LOGI(TAG, "Restored RST pin %d high before init unhold", RST_PIN);
+    }
+
+    // Disable global deep sleep hold (Required for ESP32-C3)
+    gpio_deep_sleep_hold_dis();
+
     const int pins[] = {RST_PIN, CS_PIN, DC_PIN, SCLK_PIN, SDI_PIN};
     for (size_t i = 0; i < sizeof(pins) / sizeof(pins[0]); i++) {
         if (pins[i] < 0) {
@@ -182,15 +207,46 @@ lv_display_t *lvgl_display_init(void)
         .width = DISP_HOR_RES,
         .height = DISP_VER_RES,
     };
+
+    // Check if waking from deep sleep
+    esp_sleep_wakeup_cause_t wake_cause = esp_sleep_get_wakeup_cause();
+    bool is_deep_wake = (wake_cause == ESP_SLEEP_WAKEUP_TIMER || 
+                         wake_cause == ESP_SLEEP_WAKEUP_GPIO ||
+                         wake_cause == ESP_SLEEP_WAKEUP_EXT0 ||
+                         wake_cause == ESP_SLEEP_WAKEUP_EXT1 ||
+                         wake_cause == ESP_SLEEP_WAKEUP_TOUCHPAD ||
+                         wake_cause == ESP_SLEEP_WAKEUP_ULP);
+    
+    int reset_pin = RST_PIN;
+    if (is_deep_wake) {
+        ESP_LOGI(TAG, "Deep sleep wake detected, skipping display reset");
+        reset_pin = -1; // Prevent driver from toggling reset pin
+    } else {
+        ESP_LOGI(TAG, "Power on reset, resetting display");
+    }
+
     esp_lcd_panel_dev_config_t panel_dev_cfg = {
-        .reset_gpio_num = RST_PIN,
+        .reset_gpio_num = reset_pin,
         .bits_per_pixel = 1,
         .vendor_config = &panel_cfg,
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7306_bw(s_io_handle, &panel_dev_cfg, &s_panel_handle));
-    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(s_panel_handle, false));
-    ESP_ERROR_CHECK(esp_lcd_panel_reset(s_panel_handle));
-    vTaskDelay(pdMS_TO_TICKS(50));
+    
+    // Only reset hardware if not waking from deep sleep
+    if (!is_deep_wake) {
+        ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(s_panel_handle, false));
+        ESP_ERROR_CHECK(esp_lcd_panel_reset(s_panel_handle));
+        vTaskDelay(pdMS_TO_TICKS(50));
+    } else {
+        // If waking from deep sleep, ensure RST is output High (since we passed -1 to driver)
+        if (RST_PIN >= 0) {
+            gpio_set_level(RST_PIN, 1);
+            gpio_set_direction(RST_PIN, GPIO_MODE_OUTPUT_OD);
+        }
+    }
+
+    // Always perform software init to restore registers (Gamma, Power, etc.)
+    // st7306 init sequence does NOT include SWRESET, so GRAM should be preserved.
     ESP_ERROR_CHECK(esp_lcd_panel_init(s_panel_handle));
     vTaskDelay(pdMS_TO_TICKS(50));
     (void)st7306_set_low_power_mode(false);
@@ -331,6 +387,4 @@ void lvgl_display_low_power(bool enable)
         s_display_low_power = false;
     }
 }
-
-
 

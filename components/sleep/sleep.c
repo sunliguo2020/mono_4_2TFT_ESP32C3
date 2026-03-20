@@ -89,16 +89,61 @@ static void display_gpio_hold(bool enable) {
 
   if (enable) {
     if (RST_PIN >= 0) {
-      gpio_set_direction(RST_PIN, GPIO_MODE_OUTPUT);
+      // 1. Set output level to 1 FIRST (writes to GPIO_OUT_W1TS_REG)
       gpio_set_level(RST_PIN, 1);
+
+      // 2. Configure RST as Open Drain output with pull-up
+      gpio_config_t rst_conf = {
+          .pin_bit_mask = (1ULL << RST_PIN),
+          .mode = GPIO_MODE_OUTPUT_OD,
+          .pull_up_en = GPIO_PULLUP_ENABLE,
+          .pull_down_en = GPIO_PULLDOWN_DISABLE,
+          .intr_type = GPIO_INTR_DISABLE,
+      };
+      gpio_config(&rst_conf);
+      
+      // 3. Ensure the level is set before holding
+      vTaskDelay(pdMS_TO_TICKS(10));
+      
+      // Explicitly hold RST pin
+      esp_err_t hold_ret = gpio_hold_en(RST_PIN);
+      ESP_LOGI(TAG, "Holding RST pin %d high (ret=%d)", RST_PIN, hold_ret);
     }
     for (size_t i = 0; i < sizeof(pins) / sizeof(pins[0]); i++) {
-      if (pins[i] < 0) {
+      if (pins[i] < 0 || pins[i] == RST_PIN) { // Skip RST_PIN as handled above
         continue;
       }
       gpio_hold_en(pins[i]);
     }
+    
+    // Enable global deep sleep hold for digital GPIOs (Required for ESP32-C3)
+    gpio_deep_sleep_hold_en();
+    ESP_LOGI(TAG, "Enabled global deep sleep hold");
   } else {
+    // Re-configure RST pin to output HIGH BEFORE disabling hold to prevent glitch
+    if (RST_PIN >= 0) {
+      // 1. Set output level to 1 FIRST
+      gpio_set_level(RST_PIN, 1);
+
+      // 2. Configure as Open Drain Output
+      gpio_config_t rst_conf = {
+          .pin_bit_mask = (1ULL << RST_PIN),
+          .mode = GPIO_MODE_OUTPUT_OD,
+          .pull_up_en = GPIO_PULLUP_ENABLE,
+          .pull_down_en = GPIO_PULLDOWN_DISABLE,
+          .intr_type = GPIO_INTR_DISABLE,
+      };
+      gpio_config(&rst_conf);
+      
+      // 3. Ensure level is stable
+      esp_rom_delay_us(100); 
+      ESP_LOGI(TAG, "Restored RST pin %d high before unhold", RST_PIN);
+    }
+
+    // Disable global deep sleep hold
+    gpio_deep_sleep_hold_dis();
+    ESP_LOGI(TAG, "Disabled global deep sleep hold");
+
     for (size_t i = 0; i < sizeof(pins) / sizeof(pins[0]); i++) {
       if (pins[i] < 0) {
         continue;
