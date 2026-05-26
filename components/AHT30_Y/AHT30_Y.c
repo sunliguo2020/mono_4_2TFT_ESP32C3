@@ -37,12 +37,28 @@ void aht30_y_init(void) {
       .flags.enable_internal_pullup = 1,
   };
 
-  ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &s_i2c_bus));
+  // 【修改 1】不崩溃，只返回错误
+  esp_err_t err = i2c_new_master_bus(&bus_cfg, &s_i2c_bus);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "I2C 初始化失败");
+    return;
+  }
 
   ahtxx_config_t cfg = I2C_AHT30_CONFIG_DEFAULT;
-  ESP_ERROR_CHECK(ahtxx_init(s_i2c_bus, &cfg, &s_aht));
-  ESP_ERROR_CHECK(ahtxx_reset(s_aht));
+  
+  // 【修改 2】找不到 AHT30 不崩溃，只打印警告
+  err = ahtxx_init(s_i2c_bus, &cfg, &s_aht);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "未找到 AHT30 传感器，跳过初始化");
+    s_aht = NULL;
+    return;
+  }
+
+  // 复位也做容错
+  ahtxx_reset(s_aht);
   vTaskDelay(pdMS_TO_TICKS(200));
+
+  ESP_LOGI(TAG, "AHT30 初始化成功");
 }
 
 void aht30_y_start(void) {
