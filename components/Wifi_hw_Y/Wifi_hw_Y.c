@@ -17,8 +17,8 @@
 
 #define WIFI_CONNECTED_BIT BIT0 // 定义WIFI连接成功的标志位
 #define WIFI_FAIL_BIT BIT1      // 定义WIFI连接失败的标志位
-#define MY_SSID "CMCC-ePVF"            // 定义AP的SSID
-#define MY_PASSWORD "ffueVxpW"  // 定义AP的密�?
+#define MY_SSID "ruizhixinxi"            // 定义AP的SSID
+#define MY_PASSWORD "ruizhi2016"  // 定义AP的密�?
 char ip_address_str[16] = {0}; // ����ip��ַ��������ʾ
 char wifi_ssid[33] = {0};      // ���ڴ洢SSID����󳤶�?2�ֽ�
 bool wifi_connected = false; // wifi����״̬��־λ
