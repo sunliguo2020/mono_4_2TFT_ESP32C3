@@ -1,24 +1,9 @@
 {
-  "C_Cpp.intelliSenseEngine": "default",
-  "idf.espIdfPathWin": "F:/ESP-IDF/.espressif/frameworks/esp-idf-v5.5.2/",
-  "idf.pythonInstallPath": "F:\\ESP-IDF\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+  "idf.customExtraVars": {},
+  "idf.currentSetup": "D:\\esp\\v5.5.4\\esp-idf",
   "idf.openOcdConfigs": [
     "board/esp32c3-builtin.cfg"
   ],
-  "idf.portWin": "COM60",
-  "idf.toolsPathWin": "F:\\ESP-IDF\\.espressif",
-  "idf.customExtraVars": {
-    "OPENOCD_SCRIPTS": "f:\\ESP-IDF\\.espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20240821/openocd-esp32/share/openocd/scripts",
-    "IDF_CCACHE_ENABLE": "1",
-    "ESP_ROM_ELF_DIR": "f:\\ESP-IDF\\.espressif\\tools\\esp-rom-elfs\\20230320/",
-    "IDF_TARGET": "esp32c3"
-  },
-  "idf.flashType": "UART",
-  "clangd.path": "F:\\ESP-IDF\\.espressif\\tools\\esp-clang\\esp-19.1.2_20250312\\esp-clang\\bin\\clangd.exe",
-  "clangd.arguments": [
-    "--background-index",
-    "--query-driver=**",
-    "--compile-commands-dir=f:\\ESP32_TEST\\MONO_TFT\\build"
-  ],
-  "idf.currentSetup": "F:/ESP-IDF/.espressif/frameworks/esp-idf-v5.5.2/"
+  "idf.portWin": "COM11",
+  "idf.flashType": "UART"
 }
