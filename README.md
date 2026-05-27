@@ -51,6 +51,10 @@
 
 #### 4、焊接
 
+主要是AHT30温湿度 和OPT3001光照 这个两个元件比较难焊接。可以使用加热台先焊接这两个元件。
+
+pfc底座也是一个难点。
+
 #### 5、软件部分
 
 - 安装esp-idf环境
@@ -88,3 +92,87 @@ Error while getting targets from ESP-IDF: Error: File not found: C:\Users\sunlig
 
 把：$env:’_IDF.PY_COMPLETE’ = $previous
 改成：${env:_IDF.PY_COMPLETE} = $previous
+
+#### 6、编译烧录
+
+修改wifi名和密码，pc开机的密钥 ，抖音获取的粉丝数的参数
+
+烧录的时候，需要按下重置按钮。
+
+## 改进过程
+
+### 1、蓝牙配网问题
+
+原来的wifi名和密码是写死的，我想改成第一次蓝牙配网模式。
+
+#### 配网流程
+
+##### 1、启动流程
+
+```
+app_main()
+  ├─ NVS 初始化
+  ├─ LVGL 初始化（显示 GUI）
+  ├─ 传感器初始化（AHT30、OPT3001、BATTERY、AS312）
+  └─ 主循环（每 100ms 运行一次状态机）
+```
+
+##### 2、状态机流程
+
+```
+STATE_INIT
+  ├─ 有 WiFi 凭据？→ STATE_WIFI_CONNECTING
+  └─ 无 WiFi 凭据？→ STATE_BLE_PROVISIONING
+
+STATE_WIFI_CONNECTING
+  ├─ WiFi 已连接？→ STATE_WIFI_CONNECTED（调用 on_wifi_connected）
+  └─ 30秒超时？→ STATE_BLE_PROVISIONING
+
+STATE_BLE_PROVISIONING
+  ├─ 启动 BLE 广播（设备名: "ESP32-C3-WiFi"）
+  ├─ 等待手机发送数据（格式: ssid:xxx,pwd:xxx）
+  ├─ 收到数据后累积到缓冲区
+  ├─ 解析成功？→ 保存到 NVS → 设置标志位
+  └─ 主循环检测到标志位 → STATE_PROVISIONING_DONE
+
+STATE_PROVISIONING_DONE
+  ├─ 关闭 BLE
+  ├─ 重新加载 WiFi 凭据
+  ├─ 连接 WiFi
+  ├─ WiFi 已连接？→ STATE_WIFI_CONNECTED
+  └─ 30秒超时？→ STATE_PROVISIONING_WIFI_FAIL
+
+STATE_PROVISIONING_WIFI_FAIL
+  └─ 重新进入 BLE 配网模式
+
+STATE_WIFI_CONNECTED
+  ├─ 设置默认时间（非阻塞）
+  ├─ 启动时间同步（后台任务）
+  ├─ 注册 HTTP 更新回调（PC 状态、抖音粉丝）
+  ├─ 启动睡眠灯光
+  └─ 更新 WiFi 图标（wifi_online）
+
+```
+
+##### 3、手机配网操作
+
+```
+1. 设备启动 → 无 WiFi 凭据 → 自动进入 BLE 配网模式
+2. 手机打开 BLE 扫描 → 找到 "ESP32-C3-WiFi"
+3. 手机连接设备 → 找到特征值 UUID 0xFFE1
+4. 手机写入数据（分两次发送）:
+   第一次: "ssid:rizhixinxi,pwd:"
+   第二次: "ruizhi2016"
+5. 设备累积接收 → 解析成功 → 保存到 NVS
+6. 设备关闭 BLE → 连接 WiFi
+7. WiFi 连接成功 → 更新图标 → 开始正常工作
+
+```
+
+##### 4、关键文件
+
+| 文件                             | 功能                            |
+| -------------------------------- | ------------------------------- |
+| main/main.c                      | 主循环、状态机、配网完成回调    |
+| components/ble_wifi/ble_wifi.c   | BLE 服务、数据接收、凭据解析    |
+| components/Wifi_hw_Y/Wifi_hw_Y.c | WiFi 初始化、事件处理、NVS 存储 |
