@@ -43,11 +43,11 @@
 
 #### 3、淘宝购买元件
 
-| 序号 |                              | 数量 | 价格 |
-| ---- | :--------------------------- | ---- | ---- |
-| 1    | AS312                        | 1    | 1.75 |
-| 2    | ESP32-C3-WROOM-02-N4         | 1    | 7.8  |
-| 3    | 鱼鹰光电4.2寸全反射TFT单色屏 | 1    | 43   |
+| 序号 |                                               | 数量 | 价格 |
+| ---- | :-------------------------------------------: | ---- | ---- |
+| 1    |                     AS312                     | 1    | 1.75 |
+| 2    |             ESP32-C3-WROOM-02-N4              | 1    | 7.8  |
+| 3    | 鱼鹰光电4.2寸全反射TFT单色屏300*400无背光16Hz | 1    | 43   |
 
 #### 4、焊接
 
@@ -98,6 +98,133 @@ Error while getting targets from ESP-IDF: Error: File not found: C:\Users\sunlig
 修改wifi名和密码，pc开机的密钥 ，抖音获取的粉丝数的参数
 
 烧录的时候，需要按下重置按钮。
+
+## 屏幕布局
+
+本设备使用 4.2 寸鱼鹰全反射类墨水屏，分辨率 300×400 像素。主屏幕布局如下：
+
+```
+┌──────────────────────────────────────┐
+│  ┌─ 顶部栏 (y=4, 290x52) ──────────┐ │
+│  │ WiFi图标(5,1)       光照图标     │ │
+│  │                    (135,2)       │ │
+│  │ 人体存在图标(170,4) 电池符号     │ │
+│  │                   (221,4)        │ │
+│  │ WiFi文字  光照值(135,28)          │ │
+│  │ (5,32)    电池百分比(221,28)     │ │
+│  └──────────────────────────────────┘ │
+│                                       │
+│  ┌─ 时间区域 (y=61, 289x112) ──────┐ │
+│  │  日期 (居中, 字体SMG_32)    ↻   │ │
+│  │  ┌──────────────────────────┐    │ │
+│  │  │  88  :  88               │    │ │
+│  │  │ (字体SMG_90)             │    │ │
+│  │  └──────────────────────────┘    │ │
+│  └──────────────────────────────────┘ │
+│                                       │
+│  ┌─ 温湿度 (x=5, y=178, 177x118) ─┐ │
+│  │  温度        湿度                │ │
+│  │  (字体SMG_40) (字体SMG_40)      │ │
+│  │  25.5        60.3               │ │
+│  └──────────────────────────────────┘ │
+│  ┌─ 天气 (x=187, y=178, 107x118) ─┐ │
+│  │  天气描述                        │ │
+│  │  温度/湿度                       │ │
+│  │  (多标签重叠动态显示)            │ │
+│  └──────────────────────────────────┘ │
+│                                       │
+│  ┌─ 睡眠屏幕 ───────────────────────┐ │
+│  │  背景图片(sleep2_RGB565)         │ │
+│  │  文字: "苟命要紧"(右上角)        │ │
+│  └──────────────────────────────────┘ │
+└──────────────────────────────────────┘
+```
+
+### 各区域详细说明
+
+| 区域 | 容器 | 位置 (x,y) | 大小 (w×h) | 内容 |
+|------|------|-----------|-----------|------|
+| 顶部栏 | `screen_main_cont_top_bar` | (5, 4) | 290×52 | WiFi图标/文字、光照图标/值、人体存在图标、电池符号/百分比 |
+| 时间区域 | `screen_main_cont_time` | (5, 61) | 289×112 | 日期、时间(时:分)、时间同步符号(↻) |
+| 温湿度 | `screen_main_cont_temp_humi` | (5, 178) | 177×118 | 温度标签/数值、湿度标签/数值 |
+| 天气 | `screen_main_cont_bottom` | (187, 178) | 107×118 | 天气描述/温度/湿度（多标签重叠动态切换） |
+| 睡眠屏幕 | `screen_sleep` | 全屏 | 300×400 | 睡眠背景图 + "苟命要紧"标签 |
+
+### 顶部栏详细布局
+
+**第一行 (y=0~25):**
+- WiFi图标 `screen_main_img_1`: (5, 1), 33×31, 图片资源 `_wifi_down_I4_33x31`(离线) / `_wifi_fill_I4_33x31`(在线)
+- 光照图标 `screen_main_img_2`: (135, 2), 29×25, 图片资源 `_light_val_I4_29x25`
+- 人体存在图标 `screen_main_img_5`: (170, 4), 36×37, 图片资源 `_Human_Presence_Sensor_RGB565A8_36x37`（有人时显示，无人时隐藏）
+- 电池符号 `screen_main_label_17`: (221, 4), 52×22, LVGL电池图标符号，根据电量动态切换（EMPTY/1/2/3/FULL）
+
+**第二行 (y=26~50):**
+- WiFi文字 `screen_main_label_wifi`: (5, 32), 33×12, 居中显示"WiFi", 字体 montserratMedium_12
+- 光照值 `screen_main_label_light_val`: (135, 28), 60×14, 字体 montserratMedium_16
+- 电池百分比 `screen_main_label_bat_val`: (221, 28), 52×14, 右对齐, 字体 montserratMedium_16, 格式"100%"
+
+### 时间区域详细布局
+
+区域容器 `screen_main_cont_time`: (5, 61), 289×112, 白底圆角边框
+
+- 日期标签 `screen_main_label_date`: (0, 1), 233×28, 字体 SMG_32, 居中对齐, 格式"2026-01-30"
+- 时间同步符号 `screen_main_label_time_update`: (241, 4), 30×23, 字体 SourceHanSansSCBold_24, 显示 LV_SYMBOL_LOOP(↻)
+- 子容器 `screen_main_cont_2`: (2, 32), 281×89, 仅顶部边框
+  - 小时 `screen_main_label_time_hour`: (-1, -10), 140×85, 字体 SMG_90, 左对齐
+  - 冒号 `screen_main_label_1`: (131, -20), 22×82, 字体 SMG_90, 居中对齐
+  - 分钟 `screen_main_label_time_min`: (150, -10), 136×82, 字体 SMG_90, 居中对齐
+
+> 注：`screen_main_label_time_update` 显示时间同步状态，同步中显示 ↻，可改为 ✅ 表示同步完成。
+
+### 温湿度区域详细布局
+
+区域容器 `screen_main_cont_temp_humi`: (5, 178), 177×118, 白底圆角边框
+
+- 温度标签 `screen_main_label_8`: (5, 5), 80×25, 字体 SourceHanSansSCBold_20, 文本"温度"
+- 温度值 `screen_main_label_temp_val`: (5, 35), 80×40, 字体 SMG_40, 格式"25.5"
+- 湿度标签 `screen_main_label_10`: (90, 5), 80×25, 字体 SourceHanSansSCBold_20, 文本"湿度"
+- 湿度值 `screen_main_label_humi_val`: (90, 35), 80×40, 字体 SMG_40, 格式"60.3"
+
+### 天气区域详细布局
+
+区域容器 `screen_main_cont_bottom`: (187, 178), 107×118, 白底圆角边框
+
+天气区域使用多个位置重叠的标签，通过 `UI_MSG_WEATHER` 消息动态控制显示：
+
+| 标签 | 位置 (x,y) | 大小 (w×h) | 字体 | 用途 |
+|------|-----------|-----------|------|------|
+| `screen_main_label_weather` | (5, 5) | 97×108 | montserratMedium_16 | 主标签（显示天气图标） |
+| `screen_main_label_5` | (0, 0) | 107×118 | SourceHanSansSCBold_24 | 天气描述文本（如"晴"） |
+| `screen_main_label_20` | (0, 0) | 107×118 | SourceHanSansSCBold_24 | 温度（如"28°C"） |
+| `screen_main_label_run_hour` | (0, 0) | 107×118 | SourceHanSansSCBold_24 | 湿度（如"60%"） |
+| `screen_main_label_19` | (0, 0) | 107×118 | SourceHanSansSCBold_24 | 备用 |
+| `screen_main_label_18` | (0, 0) | 107×118 | SourceHanSansSCBold_24 | 备用 |
+| `screen_main_label_run_min` | (0, 0) | 107×118 | SourceHanSansSCBold_24 | 备用 |
+| `screen_main_label_2` | (0, 0) | 107×118 | SourceHanSansSCBold_24 | 备用 |
+
+### 睡眠屏幕详细布局
+
+| 控件 | 位置 (x,y) | 大小 (w×h) | 内容 |
+|------|-----------|-----------|------|
+| `screen_sleep_img_1` | (0, 0) | 301×399 | 睡眠背景图 `_sleep2_RGB565_301x399` |
+| `screen_sleep_label_1` | (189, 6) | 37×108 | 文本"苟命要紧"，带黑色边框圆角，字体 SourceHanSansSCBold_24 |
+
+### UI 消息系统（动态更新）
+
+`lvgl_ui.c` 通过消息队列（`ui_msg_t`）在后台任务中更新 UI：
+
+| 消息类型 | 函数接口 | 更新内容 |
+|---------|---------|---------|
+| `UI_MSG_WIFI_ONLINE` | `wifi_online()` | WiFi图标切换为在线图标 `_wifi_fill_I4_33x31` |
+| `UI_MSG_WIFI_OFFLINE` | `wifi_downline()` | WiFi图标切换为离线图标 `_wifi_down_I4_33x31` |
+| `UI_MSG_TIME_LABELS` | `lvgl_ui_set_time_labels()` | 更新日期、时、分文本 |
+| `UI_MSG_TIME_SYMBOL` | `lvgl_ui_set_time_update_symbol()` | 更新时间同步符号（↻ 等） |
+| `UI_MSG_TEMP_HUMI` | `lvgl_ui_set_temp_humi()` | 更新温湿度数值（保留1位小数） |
+| `UI_MSG_LIGHT_LUX` | `lvgl_ui_set_light_lux()` | 更新光照强度数值（lux） |
+| `UI_MSG_BATTERY` | `lvgl_ui_set_battery()` | 更新电池百分比和电池图标（EMPTY/1/2/3/FULL） |
+| `UI_MSG_PRESENCE` | `lvgl_ui_set_presence()` | 人体存在：显示/隐藏人体存在图标 |
+| `UI_MSG_WEATHER` | `lvgl_ui_set_weather()` | 更新天气描述、温度、湿度/图标 |
+| `UI_MSG_SLEEP_SCREEN` | `lvgl_ui_show_sleep_screen()` | 切换主屏/睡眠屏 |
 
 ## 改进过程
 

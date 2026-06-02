@@ -11,7 +11,6 @@
 #include "gui_guider.h"
 #include "lvgl_display.h"
 #include "Wifi_hw_Y.h"
-#include "pc_status.h"
 #include "hw_time_Y.h"
 #include "MONO_TFT.h"
 #include "lvgl.h"
@@ -19,6 +18,7 @@
 #include "OPT3001_Y.h"
 #include "BATTERY_Y.h"
 #include "AS312_Y.h"
+#include "weather.h"
 #include <time.h>
 
 #define TAG "sleep"
@@ -36,18 +36,9 @@
 #define OPT3001_DISARM_HIGH_LUX 100000.0f
 #define WAKE_BTN_GPIO 5
 #define AS312_NO_MOTION_TIMEOUT_US (30LL * 60LL * 1000000LL)
-#define POWER_ON_RETRY_MS 5000
-#define POWER_ON_LOOP_DELAY_MS 300
-#define POWER_ON_WIFI_WAIT_MS 15000
-
 static void force_screen_switch(bool show_sleep);
 static TaskHandle_t s_sleep_task = NULL;
-static sleep_update_cb_t s_http_update_cb = NULL;
 static sleep_update_cb_t s_battery_update_cb = NULL;
-static sleep_update_cb_t s_state_update_cb = NULL;
-static int64_t s_last_http_update_us = 0;
-static volatile bool s_power_on_pending = false;
-static int64_t s_last_power_on_attempt_us = 0;
 static int s_io5_last_level = 1;
 static volatile bool s_io5_irq_flag = false;
 
@@ -174,35 +165,6 @@ static bool ensure_wifi_connected(TickType_t wait_ticks) {
   return false;
 }
 
-// Try to execute the pending power-on HTTP request.
-static bool handle_power_on_pending(void) {
-  if (!s_power_on_pending) {
-    return false;
-  }
-
-  int64_t now_us = esp_timer_get_time();
-  if (s_last_power_on_attempt_us != 0 &&
-      (now_us - s_last_power_on_attempt_us) <
-          (int64_t)POWER_ON_RETRY_MS * 1000LL) {
-    return true;
-  }
-  s_last_power_on_attempt_us = now_us;
-
-  ESP_LOGI(TAG, "io5 power on pending, attempt http");
-  if (!ensure_wifi_connected(pdMS_TO_TICKS(POWER_ON_WIFI_WAIT_MS))) {
-    ESP_LOGW(TAG, "power on pending, wifi connect failed");
-    return true;
-  }
-  if (pc_status_send_power_on()) {
-    ESP_LOGI(TAG, "power on request success");
-    s_power_on_pending = false;
-    return false;
-  }
-
-  ESP_LOGW(TAG, "power on request failed, keep awake");
-  return true;
-}
-
 // Update time-related UI labels from RTC time.
 static void update_time_labels(void) {
   // Read RTC time and push to UI labels.
@@ -262,7 +224,6 @@ static void sleep_step_collect(struct tm *timeinfo, float *lux, bool *has_lux,
   localtime_r(&now, timeinfo);
 
   update_time_labels();
-  pc_status_update_runtime_ui();
   run_aht30_update_task(AHT30_TASK_WAIT_MS);
   battery_y_read_update_ui();
   opt3001_y_read_update_ui();
@@ -286,42 +247,27 @@ static void sleep_step_collect(struct tm *timeinfo, float *lux, bool *has_lux,
 static void sleep_step_handle_io5_events(void) {
   if (s_io5_irq_flag) {
     s_io5_irq_flag = false;
-    ESP_LOGI(TAG, "io5 irq detected, schedule power on");
-    s_power_on_pending = true;
-    s_last_power_on_attempt_us = 0;
+    ESP_LOGI(TAG, "io5 irq detected");
   }
 
   int btn_level = gpio_get_level(WAKE_BTN_GPIO);
   if (btn_level == 0 && s_io5_last_level != 0) {
-    ESP_LOGI(TAG, "io5 press detected, schedule power on");
-    s_power_on_pending = true;
-    s_last_power_on_attempt_us = 0;
+    ESP_LOGI(TAG, "io5 press detected");
   }
   s_io5_last_level = btn_level;
 }
 
-// Decide and run network updates (PC status + fans).
+// Decide and run network updates.
 static void sleep_step_run_network(bool low_lux, bool motion_recent,
                                    bool motion_event, int64_t now_us) {
-  bool http_due = false;
-  if (s_last_http_update_us == 0 ||
-      (now_us - s_last_http_update_us) >=
-          ((int64_t)HTTP_UPDATE_INTERVAL_SEC * 1000000LL)) {
-    http_due = true;
-  }
-
-  bool need_fans_update = (s_state_update_cb && douyin_fans_need_retry());
-  bool need_http_update = (http_due && s_http_update_cb);
-  bool do_battery_update = false;
-  bool do_any_update =
-      need_http_update || need_fans_update || do_battery_update;
+  (void)now_us;
 
   if (low_lux) {
-    ESP_LOGI(TAG, "low lux, skip http updates");
+    ESP_LOGI(TAG, "low lux, skip network updates");
     return;
   }
   if (!motion_recent) {
-    ESP_LOGI(TAG, "no motion for 30 min, skip wifi/http updates");
+    ESP_LOGI(TAG, "no motion for 30 min, skip wifi/network updates");
     return;
   }
   if (!ensure_wifi_connected(pdMS_TO_TICKS(5000))) {
@@ -336,42 +282,28 @@ static void sleep_step_run_network(bool low_lux, bool motion_recent,
     hw_time_resync_if_due();
   }
 
-  if (!do_any_update) {
-    ESP_LOGI(TAG, "skip http updates, next in %d sec",
-             HTTP_UPDATE_INTERVAL_SEC);
-    return;
-  }
-
   lvgl_ui_pause(true);
 
-  if (need_http_update) {
-    s_http_update_cb();
-    s_last_http_update_us = now_us;
-    vTaskDelay(pdMS_TO_TICKS(50));
-  }
-  if (need_fans_update) {
-    s_state_update_cb();
-    vTaskDelay(pdMS_TO_TICKS(50));
-  }
-  if (do_battery_update && s_battery_update_cb) {
+  if (s_battery_update_cb) {
     s_battery_update_cb();
+  }
+
+  // 查询天气（每天一次）
+  if (weather_need_update()) {
+    ESP_LOGI(TAG, "weather update needed, polling...");
+    weather_poll_once();
   }
 
   lvgl_ui_pause(false);
   vTaskDelay(pdMS_TO_TICKS(20));
 }
 
-// Update UI and fan retry flags before sleeping.
+// Update UI before sleeping.
 static void sleep_step_prepare_sleep(bool low_lux) {
   update_time_labels();
   lvgl_ui_set_time_update_symbol(LV_SYMBOL_LOOP);
   vTaskDelay(pdMS_TO_TICKS(30));
-  bool ui_idle = lvgl_ui_wait_idle(1500);
-  bool fans_updated = douyin_fans_updated_take();
-  if (!ui_idle && fans_updated) {
-    ESP_LOGW(TAG, "fans ui not drained, retry next wake");
-    douyin_fans_force_retry();
-  }
+  lvgl_ui_wait_idle(1500);
 
   if (low_lux) {
     force_screen_switch(true);
@@ -448,8 +380,7 @@ static void sleep_step_enter_sleep(bool low_lux, float lux, int sleep_sec) {
            (unsigned int)slp_ret, (int)wake_cause);
   if (wake_cause == ESP_SLEEP_WAKEUP_GPIO &&
       (gpio_mask & (1ULL << WAKE_BTN_GPIO))) {
-    s_power_on_pending = true;
-    s_last_power_on_attempt_us = 0;
+    ESP_LOGI(TAG, "wake btn triggered wakeup");
   }
 
   display_gpio_hold(false);
@@ -500,10 +431,6 @@ static void sleep_task(void *arg) {
     sleep_step_collect(&timeinfo, &lux, &has_lux, &low_lux,
                        &motion_event, &motion_recent);
     sleep_step_handle_io5_events();
-    if (handle_power_on_pending()) {
-      vTaskDelay(pdMS_TO_TICKS(POWER_ON_LOOP_DELAY_MS));
-      continue;
-    }
 
     int sleep_sec = 60 - timeinfo.tm_sec;
     if (sleep_sec <= 0) {
@@ -531,25 +458,14 @@ void sleep_start_light(void) {
   sleep_init();
 }
 
-// Register HTTP update callback (PC status).
-void sleep_register_http_update_cb(sleep_update_cb_t cb) {
-  s_http_update_cb = cb;
-}
-
 // Register battery update callback.
 void sleep_register_battery_update_cb(sleep_update_cb_t cb) {
   s_battery_update_cb = cb;
 }
 
-// Register generic state update callback (fans).
-void sleep_register_state_update_cb(sleep_update_cb_t cb) {
-  s_state_update_cb = cb;
-}
-
-// Schedule power-on HTTP after IO5 wake.
+// Handle IO5 wake event.
 void sleep_notify_io5_wake(void) {
-  s_power_on_pending = true;
-  s_last_power_on_attempt_us = 0;
+  ESP_LOGI(TAG, "io5 wake notification");
 }
 
 // Force switch between main/sleep screens with LVGL locking.

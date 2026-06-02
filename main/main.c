@@ -11,7 +11,6 @@
 #include "lvgl_display.h"
 #include "Wifi_hw_Y.h"
 #include "hw_time_Y.h"
-#include "pc_status.h"
 #include "sleep.h"
 #include "AHT30_Y.h"
 #include "OPT3001_Y.h"
@@ -21,6 +20,7 @@
 #include "ble_wifi.h"
 #include "nvs_flash.h"
 #include "esp_wifi.h"
+#include "weather.h"
 
 #define WAKE_BTN_GPIO 5
 #define OPT3001_INT_TEST 0
@@ -126,8 +126,7 @@ static void on_wifi_connected(void)
         handle_io5_wakeup();
     }
 
-    sleep_register_http_update_cb(pc_status_poll_once);
-    sleep_register_state_update_cb(douyin_fans_poll_once);
+    weather_poll_once();
     sleep_start_light();
 }
 
@@ -239,10 +238,9 @@ void app_main(void)
 
     ESP_ERROR_CHECK(ret);
 
-    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
     uint64_t gpio_wakeup = esp_sleep_get_gpio_wakeup_status();
     ESP_LOGI("main", "wakeup cause=%d gpio_mask=0x%08x%08x",
-             (int)cause, (uint32_t)(gpio_wakeup >> 32),
+             (int)esp_sleep_get_wakeup_cause(), (uint32_t)(gpio_wakeup >> 32),
              (uint32_t)gpio_wakeup);
 
     // 先初始化 LVGL 显示，确保显示缓冲区已分配

@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include "gui_guider.h"
 #include "widgets_init.h"
+#include "setup_scr_screen_main_top_bar.h"
+#include "setup_scr_screen_main_time.h"
+#include "setup_scr_screen_main_bottom.h"
 
 void ui_init_style(lv_style_t * style)
 {
@@ -87,6 +90,9 @@ void setup_ui(lv_ui *ui)
     init_scr_del_flag(ui);
     init_keyboard(ui);
     setup_scr_screen_main(ui);
+    setup_scr_screen_main_top_bar(ui);
+    setup_scr_screen_main_time(ui);
+    setup_scr_screen_main_bottom(ui);
     lv_screen_load(ui->screen_main);
 }
 

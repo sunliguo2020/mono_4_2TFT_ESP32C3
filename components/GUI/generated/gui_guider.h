@@ -40,8 +40,11 @@ typedef struct
 	lv_obj_t *screen_main_cont_7;
 	lv_obj_t *screen_main_label_21;
 	lv_obj_t *screen_main_label_5;
-	lv_obj_t *screen_main_label_22;
+	lv_obj_t *screen_main_cont_temp_humi;
+	lv_obj_t *screen_main_cont_bottom;
+	lv_obj_t *screen_main_label_weather;
 	lv_obj_t *screen_main_cont_top_bar;
+	lv_obj_t *screen_main_label_wifi;
 	lv_obj_t *screen_main_img_1;
 	lv_obj_t *screen_main_img_PC_statee;
 	lv_obj_t *screen_main_img_2;
@@ -55,7 +58,6 @@ typedef struct
 	lv_obj_t *screen_main_img_keep_stu;
 	lv_obj_t *screen_main_label_17;
 	lv_obj_t *screen_main_label_online_flag;
-	lv_obj_t *screen_main_cont_temp_humi;
 	lv_obj_t *screen_main_label_8;
 	lv_obj_t *screen_main_label_10;
 	lv_obj_t *screen_main_label_temp_val;
@@ -63,9 +65,7 @@ typedef struct
 	lv_obj_t *screen_main_cont_5;
 	lv_obj_t *screen_main_label_14;
 	lv_obj_t *screen_main_img_4;
-	lv_obj_t *screen_main_label_11;
 	lv_obj_t *screen_main_label_16;
-	lv_obj_t *screen_main_label_fan_update;
 	lv_obj_t *screen_main_line_1;
 	lv_obj_t *screen_sleep;
 	bool screen_sleep_del;
@@ -100,6 +100,10 @@ extern lv_ui guider_ui;
 
 void setup_scr_screen_main(lv_ui *ui);
 void setup_scr_screen_sleep(lv_ui *ui);
+void setup_scr_screen_main_top_bar(lv_ui *ui);
+void setup_scr_screen_main_time(lv_ui *ui);
+void setup_scr_screen_main_bottom(lv_ui *ui);
+void setup_scr_screen_main_temp_humi(lv_ui *ui);
 LV_IMAGE_DECLARE(_wifi_down_I4_33x31);
 LV_IMAGE_DECLARE(_PC_I4_38x44);
 LV_IMAGE_DECLARE(_light_val_I4_29x25);
@@ -124,6 +128,7 @@ LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_20)
 LV_FONT_DECLARE(lv_font_SMG_55)
 LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_17)
 LV_FONT_DECLARE(lv_font_SMG_21)
+LV_FONT_DECLARE(lv_font_montserratMedium_20)
 
 
 #ifdef __cplusplus

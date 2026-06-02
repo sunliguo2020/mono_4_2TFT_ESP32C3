@@ -1,0 +1,38 @@
+#pragma once
+
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// 执行一次天气查询并更新 UI
+void weather_poll_once(void);
+
+// 检查是否需要更新天气
+bool weather_need_update(void);
+
+// 强制下次更新
+void weather_force_update(void);
+
+// 获取当前天气文本
+const char* weather_get_text(void);
+
+// 获取当前温度
+int weather_get_temp(void);
+
+// 获取体感温度
+int weather_get_feels_like(void);
+
+// 获取湿度
+int weather_get_humidity(void);
+
+// 数据是否有效
+bool weather_is_valid(void);
+
+// 获取天气图标符号
+const char* weather_get_icon_symbol(void);
+
+#ifdef __cplusplus
+}
+#endif

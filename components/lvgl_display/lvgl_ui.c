@@ -6,27 +6,27 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "gui_guider.h"
+#include "setup_scr_screen_main_top_bar.h"
+#include "setup_scr_screen_main_time.h"
+#include "setup_scr_screen_main_bottom.h"
+#include "setup_scr_screen_main_temp_humi.h"
 
 static const char *TAG = "lvgl_ui";
 
-lv_ui guider_ui; // ?????????????
+lv_ui guider_ui;
 
-// UI?????????UI????????????UI?????
+// UI???????UI?????????UI?????
 typedef enum {
   UI_MSG_WIFI_ONLINE = 0,
   UI_MSG_WIFI_OFFLINE,
   UI_MSG_TIME_LABELS,
-  UI_MSG_PC_STATE_TEXT,
-  UI_MSG_FANS_COUNT,
   UI_MSG_TIME_SYMBOL,
-  UI_MSG_FAN_SYMBOL,
-  UI_MSG_PC_SESSION_TIME,
-  UI_MSG_PC_TOTAL_TIME,
   UI_MSG_TEMP_HUMI,
   UI_MSG_LIGHT_LUX,
   UI_MSG_SLEEP_SCREEN,
   UI_MSG_BATTERY,
-  UI_MSG_PRESENCE
+  UI_MSG_PRESENCE,
+  UI_MSG_WEATHER
 } ui_msg_type_t;
 
 typedef struct {
@@ -48,12 +48,16 @@ typedef struct {
     float lux;
     bool show_sleep;
     bool presence;
-    uint32_t count;
     char text[16];
     struct {
       uint32_t mv;
       uint32_t percent;
     } bat;
+    struct {
+      char text[16];
+      char temp[16];
+      char humi[16];
+    } weather;
   } data;
 } ui_msg_t;
 
@@ -68,6 +72,10 @@ LV_IMAGE_DECLARE(_out_line_I4_39x43);
 static void ensure_screen_main(void) {
   if (!guider_ui.screen_main || guider_ui.screen_main_del) {
     setup_scr_screen_main(&guider_ui);
+    setup_scr_screen_main_top_bar(&guider_ui);
+    setup_scr_screen_main_time(&guider_ui);
+    setup_scr_screen_main_bottom(&guider_ui);
+    setup_scr_screen_main_temp_humi(&guider_ui);
     guider_ui.screen_main_del = false;
   }
 }
@@ -91,7 +99,7 @@ static void ui_queue_send(const ui_msg_t *msg) {
   }
 }
 
-// UI???????????LVGL API????
+// UI????????????LVGL API????
 static void ui_task(void *arg) {
   (void)arg;
   ui_msg_t msg;
@@ -131,55 +139,10 @@ static void ui_task(void *arg) {
                             msg.data.time_labels.min);
         }
         break;
-      case UI_MSG_PC_STATE_TEXT:
-        if (guider_ui.screen_main_label_online_flag) {
-          lv_label_set_text(guider_ui.screen_main_label_online_flag,
-                            msg.data.text);
-        }
-        break;
-      case UI_MSG_FANS_COUNT:
-        if (guider_ui.screen_main_label_11) {
-          char buf[16];
-          snprintf(buf, sizeof(buf), "%u", (unsigned)msg.data.count);
-          lv_label_set_text(guider_ui.screen_main_label_11, buf);
-        }
-        break;
       case UI_MSG_TIME_SYMBOL:
         if (guider_ui.screen_main_label_time_update) {
           lv_label_set_text(guider_ui.screen_main_label_time_update,
                             msg.data.text);
-        }
-        break;
-      case UI_MSG_FAN_SYMBOL:
-        if (guider_ui.screen_main_label_fan_update) {
-          lv_label_set_text(guider_ui.screen_main_label_fan_update,
-                            msg.data.text);
-        }
-        break;
-      case UI_MSG_PC_SESSION_TIME:
-        if (guider_ui.screen_main_label_20 &&
-            guider_ui.screen_main_label_19) {
-          char hour_buf[6];
-          char min_buf[4];
-          snprintf(hour_buf, sizeof(hour_buf), "%02u:",
-                   (unsigned)msg.data.hm.hours);
-          snprintf(min_buf, sizeof(min_buf), "%02u",
-                   (unsigned)msg.data.hm.minutes);
-          lv_label_set_text(guider_ui.screen_main_label_20, hour_buf);
-          lv_label_set_text(guider_ui.screen_main_label_19, min_buf);
-        }
-        break;
-      case UI_MSG_PC_TOTAL_TIME:
-        if (guider_ui.screen_main_label_run_hour &&
-            guider_ui.screen_main_label_run_min) {
-          char hour_buf[6];
-          char min_buf[4];
-          snprintf(hour_buf, sizeof(hour_buf), "%02u:",
-                   (unsigned)msg.data.hm.hours);
-          snprintf(min_buf, sizeof(min_buf), "%02u",
-                   (unsigned)msg.data.hm.minutes);
-          lv_label_set_text(guider_ui.screen_main_label_run_hour, hour_buf);
-          lv_label_set_text(guider_ui.screen_main_label_run_min, min_buf);
         }
         break;
       case UI_MSG_TEMP_HUMI:
@@ -233,10 +196,43 @@ static void ui_task(void *arg) {
         }
         break;
       case UI_MSG_PRESENCE:
-        if (guider_ui.screen_main_label_15) {
-          const char *sym = msg.data.presence ? LV_SYMBOL_OK
-                                              : LV_SYMBOL_CLOSE;
-          lv_label_set_text(guider_ui.screen_main_label_15, sym);
+        if (guider_ui.screen_main_img_5) {
+          if (msg.data.presence) {
+            lv_image_set_src(guider_ui.screen_main_img_5, &_Human_Presence_Sensor_RGB565A8_36x37);
+            lv_obj_clear_flag(guider_ui.screen_main_img_5, LV_OBJ_FLAG_HIDDEN);
+          } else {
+            lv_obj_add_flag(guider_ui.screen_main_img_5, LV_OBJ_FLAG_HIDDEN);
+          }
+        }
+        break;
+      case UI_MSG_WEATHER:
+        // ???????
+        if (guider_ui.screen_main_label_5) {
+          lv_label_set_text(guider_ui.screen_main_label_5, msg.data.weather.text);
+        }
+        // ???????
+        if (guider_ui.screen_main_label_20) {
+          lv_label_set_text(guider_ui.screen_main_label_20, msg.data.weather.temp);
+        }
+        if (guider_ui.screen_main_label_19) {
+          lv_label_set_text(guider_ui.screen_main_label_19, "");
+        }
+        if (guider_ui.screen_main_label_18) {
+          lv_label_set_text(guider_ui.screen_main_label_18, "");
+        }
+        // ???????
+        if (guider_ui.screen_main_label_run_hour) {
+          lv_label_set_text(guider_ui.screen_main_label_run_hour, msg.data.weather.humi);
+        }
+        if (guider_ui.screen_main_label_run_min) {
+          lv_label_set_text(guider_ui.screen_main_label_run_min, "");
+        }
+        if (guider_ui.screen_main_label_2) {
+          lv_label_set_text(guider_ui.screen_main_label_2, "");
+        }
+        // ???????
+        if (guider_ui.screen_main_label_weather) {
+          lv_label_set_text(guider_ui.screen_main_label_weather, msg.data.weather.humi);
         }
         break;
       default:
@@ -305,13 +301,13 @@ void lvgl_gui_init(void) {
   lvgl_ui_task_init();
 }
 
-// Wi-Fi ??????
+// Wi-Fi ?????
 void wifi_online(void) {
   ui_msg_t msg = {.type = UI_MSG_WIFI_ONLINE};
   ui_queue_send(&msg);
 }
 
-// Wi-Fi ??????
+// Wi-Fi ?????
 void wifi_downline(void) {
   ui_msg_t msg = {.type = UI_MSG_WIFI_OFFLINE};
   ui_queue_send(&msg);
@@ -330,49 +326,11 @@ void lvgl_ui_set_time_labels(const char *date_str, const char *hour_str,
   ui_queue_send(&msg);
 }
 
-// ???????ON/off/X??
-void lvgl_ui_set_pc_state_text(const char *text) {
-  ui_msg_t msg = {.type = UI_MSG_PC_STATE_TEXT};
-  snprintf(msg.data.text, sizeof(msg.data.text), "%s", text ? text : "");
-  ui_queue_send(&msg);
-}
-
-// ?????????
-void lvgl_ui_set_fans_count(uint32_t count) {
-  ui_msg_t msg = {.type = UI_MSG_FANS_COUNT};
-  msg.data.count = count;
-  ui_queue_send(&msg);
-}
-
 // ?????????/????
 void lvgl_ui_set_time_update_symbol(const char *symbol_text) {
   ui_msg_t msg = {.type = UI_MSG_TIME_SYMBOL};
   snprintf(msg.data.text, sizeof(msg.data.text), "%s",
            symbol_text ? symbol_text : "");
-  ui_queue_send(&msg);
-}
-
-// ?????????/????
-void lvgl_ui_set_fan_update_symbol(const char *symbol_text) {
-  ui_msg_t msg = {.type = UI_MSG_FAN_SYMBOL};
-  snprintf(msg.data.text, sizeof(msg.data.text), "%s",
-           symbol_text ? symbol_text : "");
-  ui_queue_send(&msg);
-}
-
-// ???????HH:MM??
-void lvgl_ui_set_pc_session_time(uint32_t hours, uint32_t minutes) {
-  ui_msg_t msg = {.type = UI_MSG_PC_SESSION_TIME};
-  msg.data.hm.hours = hours;
-  msg.data.hm.minutes = minutes;
-  ui_queue_send(&msg);
-}
-
-// ?????????HH:MM??
-void lvgl_ui_set_pc_total_time(uint32_t hours, uint32_t minutes) {
-  ui_msg_t msg = {.type = UI_MSG_PC_TOTAL_TIME};
-  msg.data.hm.hours = hours;
-  msg.data.hm.minutes = minutes;
   ui_queue_send(&msg);
 }
 
@@ -410,5 +368,17 @@ void lvgl_ui_show_sleep_screen(bool show_sleep) {
 void lvgl_ui_set_presence(bool present) {
   ui_msg_t msg = {.type = UI_MSG_PRESENCE};
   msg.data.presence = present;
+  ui_queue_send(&msg);
+}
+
+// Update weather label.
+void lvgl_ui_set_weather(const char *text, const char *temp, const char *icon) {
+  ui_msg_t msg = {.type = UI_MSG_WEATHER};
+  snprintf(msg.data.weather.text, sizeof(msg.data.weather.text), "%s",
+           text ? text : "");
+  snprintf(msg.data.weather.temp, sizeof(msg.data.weather.temp), "%s",
+           temp ? temp : "");
+  snprintf(msg.data.weather.humi, sizeof(msg.data.weather.humi), "%s",
+           icon ? icon : "");
   ui_queue_send(&msg);
 }

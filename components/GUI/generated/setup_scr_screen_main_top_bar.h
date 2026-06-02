@@ -7,22 +7,20 @@
 * terms, then you may not retain, install, activate or otherwise use the software.
 */
 
-#include "events_init.h"
-#include <stdio.h>
-#include "lvgl.h"
+#ifndef SETUP_SCR_SCREEN_MAIN_TOP_BAR_H
+#define SETUP_SCR_SCREEN_MAIN_TOP_BAR_H
 
-#if LV_USE_GUIDER_SIMULATOR && LV_USE_FREEMASTER
-#include "freemaster_client.h"
+#ifdef __cplusplus
+extern "C" {
 #endif
 
+#include "lvgl.h"
+#include "gui_guider.h"
 
+void setup_scr_screen_main_top_bar(lv_ui *ui);
 
-void events_init(lv_ui *ui)
-{
-
+#ifdef __cplusplus
 }
+#endif
 
-void events_init_screen_main(lv_ui *ui)
-{
-
-}
+#endif /* SETUP_SCR_SCREEN_MAIN_TOP_BAR_H */
