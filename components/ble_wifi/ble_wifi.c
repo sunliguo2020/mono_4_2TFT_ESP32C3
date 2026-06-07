@@ -38,6 +38,7 @@ static bool s_ble_running = false;
 #define BLE_RX_BUF_SIZE 256
 static char s_rx_buf[BLE_RX_BUF_SIZE] = {0};
 static int s_rx_buf_len = 0;
+static TickType_t s_last_rx_time = 0;  // 上次收到 BLE 数据的时间戳
 
 void ble_wifi_register_done_cb(ble_provisioning_done_cb_t cb)
 {
@@ -65,6 +66,8 @@ static bool try_parse_wifi_creds(void)
     }
     printf("\n");
 
+    TickType_t now = xTaskGetTickCount();
+
     // 检查是否有结束符 '\n' (0x0A) 或 '\r\n' (0x0D 0x0A)
     char *end_marker = NULL;
     for (int i = 0; i < s_rx_buf_len; i++) {
@@ -77,11 +80,13 @@ static bool try_parse_wifi_creds(void)
     if (!end_marker) {
         // 没有结束符，但检查是否已经包含完整的 ssid:...,pwd:... 格式
         // 如果数据看起来完整（有 ssid: 和 ,pwd: 且密码不为空），也尝试解析
+        // 但需确保距离上次接收到数据超过 300ms，避免 BLE 分片导致截断
         char *ssid_test = strstr(s_rx_buf, "ssid:");
         char *pwd_test = strstr(s_rx_buf, ",pwd:");
         if (ssid_test && pwd_test && pwd_test > ssid_test) {
             char *pwd_val = pwd_test + 5;
-            if (strlen(pwd_val) > 0) {
+            if (strlen(pwd_val) > 0 &&
+                (now - s_last_rx_time) >= pdMS_TO_TICKS(300)) {
                 ESP_LOGI(TAG, "No terminator but data looks complete, trying to parse anyway");
                 // 继续解析，不截断
             } else {
@@ -151,10 +156,10 @@ static bool try_parse_wifi_creds(void)
         return false;
     }
 
-    // 保存 WiFi 凭据到 NVS
-    wifi_save_to_nvs(ssid, pwd);
+    // 保存 WiFi 凭据到 NVS（多组凭据，不覆盖已有）
+    wifi_save_cred_to_nvs(ssid, pwd);
 
-    ESP_LOGI(TAG, "WiFi credentials saved via BLE");
+    ESP_LOGI(TAG, "WiFi credentials saved via BLE (multi-cred support)");
 
     // 清空缓冲区，准备下一次配网
     s_rx_buf_len = 0;
@@ -198,6 +203,9 @@ static int ble_char_write(uint16_t conn_handle,
     }
 
     ESP_LOGI(TAG, "Accumulated buffer: %s", s_rx_buf);
+
+    // 更新最后接收数据的时间戳，用于分片超时判断
+    s_last_rx_time = xTaskGetTickCount();
 
     // 尝试解析 WiFi 凭据
     if (try_parse_wifi_creds()) {
