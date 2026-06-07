@@ -14,6 +14,7 @@
 #include "setup_scr_screen_main_top_bar.h"
 #include "setup_scr_screen_main_time.h"
 #include "setup_scr_screen_main_bottom.h"
+#include "setup_scr_screen_main_temp_humi.h"
 
 void ui_init_style(lv_style_t * style)
 {
@@ -93,6 +94,7 @@ void setup_ui(lv_ui *ui)
     setup_scr_screen_main_top_bar(ui);
     setup_scr_screen_main_time(ui);
     setup_scr_screen_main_bottom(ui);
+    setup_scr_screen_main_temp_humi(ui);
     lv_screen_load(ui->screen_main);
 }
 

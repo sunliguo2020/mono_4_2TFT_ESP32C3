@@ -20,6 +20,8 @@
 static i2c_master_bus_handle_t s_i2c_bus = NULL;
 static ahtxx_handle_t s_aht = NULL;
 static bool s_first_read = true;
+static int s_consecutive_failures = 0;
+#define MAX_CONSECUTIVE_FAILURES 3
 
 void aht30_y_init(void) {
   if (s_aht) {
@@ -90,8 +92,62 @@ void aht30_y_read_update_ui(void) {
   if (err == ESP_OK) {
     lvgl_ui_set_temp_humi(temp, humi);
     s_first_read = false;
+    s_consecutive_failures = 0;  // 连续读取成功，复位计数器
   } else {
     ESP_LOGW(TAG, "read failed: %s", esp_err_to_name(err));
+    s_consecutive_failures++;
+
+    // 连续失败超过阈值，复位传感器
+    if (s_consecutive_failures >= MAX_CONSECUTIVE_FAILURES) {
+      ESP_LOGW(TAG, "Too many consecutive failures (%d), resetting AHT30...",
+               s_consecutive_failures);
+      s_consecutive_failures = 0;
+
+      // 方法1：先尝试软复位（不重建句柄）
+      ahtxx_reset(s_aht);
+      vTaskDelay(pdMS_TO_TICKS(300));
+
+      // 立即试读一次
+      float tmp_t, tmp_h;
+      esp_err_t retry_err = ahtxx_get_measurement(s_aht, &tmp_t, &tmp_h);
+      if (retry_err == ESP_OK) {
+        ESP_LOGI(TAG, "AHT30 recovered after soft reset");
+        lvgl_ui_set_temp_humi(tmp_t, tmp_h);
+        s_first_read = false;
+        return;
+      }
+
+      // 方法2：软复位失败，重建 I2C 设备句柄
+      ESP_LOGW(TAG, "Soft reset failed (%s), re-creating device handle...",
+               esp_err_to_name(retry_err));
+      ahtxx_remove(s_aht);
+      vTaskDelay(pdMS_TO_TICKS(50));
+      ahtxx_delete(s_aht);
+      s_aht = NULL;
+      vTaskDelay(pdMS_TO_TICKS(100));
+
+      ahtxx_config_t cfg = I2C_AHT30_CONFIG_DEFAULT;
+      esp_err_t init_err = ahtxx_init(s_i2c_bus, &cfg, &s_aht);
+      if (init_err == ESP_OK) {
+        ahtxx_reset(s_aht);
+        vTaskDelay(pdMS_TO_TICKS(300));
+        // 复位后再试读一次
+        float t, h;
+        esp_err_t read_err = ahtxx_get_measurement(s_aht, &t, &h);
+        if (read_err == ESP_OK) {
+          ESP_LOGI(TAG, "AHT30 re-initialized successfully");
+          lvgl_ui_set_temp_humi(t, h);
+          s_first_read = false;
+        } else {
+          ESP_LOGW(TAG, "AHT30 re-init but read still fails: %s",
+                   esp_err_to_name(read_err));
+        }
+      } else {
+        ESP_LOGW(TAG, "AHT30 re-initialization failed: %s",
+                 esp_err_to_name(init_err));
+        s_aht = NULL;
+      }
+    }
   }
 }
 

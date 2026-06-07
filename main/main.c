@@ -285,10 +285,22 @@ void app_main(void)
     return;
 #endif
 
+    // 温湿度定时读取间隔
+    TickType_t last_temp_humi_tick = xTaskGetTickCount();
+#define TEMP_HUMI_INTERVAL_MS 3000  // 每 3 秒读取一次
+
     // 主循环：非阻塞地处理状态机
     while (1) {
         // 运行状态机（非阻塞）
         state_machine_run();
+
+        // 定时读取温湿度传感器并更新 UI
+        TickType_t now = xTaskGetTickCount();
+        if ((now - last_temp_humi_tick) >= pdMS_TO_TICKS(TEMP_HUMI_INTERVAL_MS)) {
+            aht30_y_read_update_ui();
+            opt3001_y_read_update_ui();
+            last_temp_humi_tick = now;
+        }
 
         // 短暂延时，让其他任务（如 LVGL）有机会运行
         vTaskDelay(pdMS_TO_TICKS(100));

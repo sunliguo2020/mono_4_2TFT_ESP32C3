@@ -123,9 +123,12 @@ Error while getting targets from ESP-IDF: Error: File not found: C:\Users\sunlig
 │  └──────────────────────────────────┘ │
 │                                       │
 │  ┌─ 温湿度 (x=5, y=178, 177x118) ─┐ │
-│  │  温度        湿度                │ │
-│  │  (字体SMG_40) (字体SMG_40)      │ │
-│  │  25.5        60.3               │ │
+│  │ [温度] 88.8                      │ │
+│  │ (竖排   (字体SMG_55)            │ │
+│  │  带边框)                        │ │
+│  │ [湿度] 88.8                      │ │
+│  │ (竖排   (字体SMG_55)            │ │
+│  │  带边框)                        │ │
 │  └──────────────────────────────────┘ │
 │  ┌─ 天气 (x=187, y=178, 107x118) ─┐ │
 │  │  天气描述                        │ │
@@ -180,10 +183,12 @@ Error while getting targets from ESP-IDF: Error: File not found: C:\Users\sunlig
 
 区域容器 `screen_main_cont_temp_humi`: (5, 178), 177×118, 白底圆角边框
 
-- 温度标签 `screen_main_label_8`: (5, 5), 80×25, 字体 SourceHanSansSCBold_20, 文本"温度"
-- 温度值 `screen_main_label_temp_val`: (5, 35), 80×40, 字体 SMG_40, 格式"25.5"
-- 湿度标签 `screen_main_label_10`: (90, 5), 80×25, 字体 SourceHanSansSCBold_20, 文本"湿度"
-- 湿度值 `screen_main_label_humi_val`: (90, 35), 80×40, 字体 SMG_40, 格式"60.3"
+温湿度区域采用**垂直布局**：左侧竖排标签（带黑色边框圆角），右侧大字体数值。
+
+- 温度标签 `screen_main_label_10`: (4, 4), 30×49, 竖排文本"温度", 字体 SourceHanSansSCBold_20, 带黑色边框圆角, 居中对齐
+- 温度值 `screen_main_label_temp_val`: (35, 0), 138×52, 字体 SMG_55, 格式"25.5", 初始值"0.0"
+- 湿度标签 `screen_main_label_8`: (4, 59), 29×49, 竖排文本"湿度", 字体 SourceHanSansSCBold_20, 带黑色边框圆角, 居中对齐
+- 湿度值 `screen_main_label_humi_val`: (35, 54), 139×59, 字体 SMG_55, 格式"60.3", 初始值"0.0"
 
 ### 天气区域详细布局
 
