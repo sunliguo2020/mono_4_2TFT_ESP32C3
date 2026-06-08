@@ -14,16 +14,14 @@
 void setup_scr_screen_main_temp_humi(lv_ui *ui)
 {
     // ============================================================
-    // 温湿度区域 screen_main_cont_temp_humi (x=187, y=192, 108x118)
-    // 原始垂直布局：左侧竖排标签，右侧大字体数值
+    // 温湿度区域 screen_main_cont_temp_humi (x=5, y=178, 177x118)
+    // 左右布局：左侧温度，右侧湿度
     // ============================================================
-    //Write codes screen_main_cont_temp_humi
     ui->screen_main_cont_temp_humi = lv_obj_create(ui->screen_main);
     lv_obj_set_pos(ui->screen_main_cont_temp_humi, 5, 178);
     lv_obj_set_size(ui->screen_main_cont_temp_humi, 177, 118);
     lv_obj_set_scrollbar_mode(ui->screen_main_cont_temp_humi, LV_SCROLLBAR_MODE_OFF);
 
-    //Write style for screen_main_cont_temp_humi, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->screen_main_cont_temp_humi, 2, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui->screen_main_cont_temp_humi, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui->screen_main_cont_temp_humi, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -38,14 +36,13 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_pad_right(ui->screen_main_cont_temp_humi, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_cont_temp_humi, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    //Write codes screen_main_label_10 (温度标签 - 竖排, 带边框)
+    // -------- 温度（左侧）--------
+    // 温度标签 - 竖排"温度"
     ui->screen_main_label_10 = lv_label_create(ui->screen_main_cont_temp_humi);
     lv_obj_set_pos(ui->screen_main_label_10, 4, 4);
-    lv_obj_set_size(ui->screen_main_label_10, 30, 49);
-    lv_label_set_text(ui->screen_main_label_10, "温度");
+    lv_obj_set_size(ui->screen_main_label_10, 32, 50);
+    lv_label_set_text(ui->screen_main_label_10, "温\n度");
     lv_label_set_long_mode(ui->screen_main_label_10, LV_LABEL_LONG_WRAP);
-
-    //Write style for screen_main_label_10, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->screen_main_label_10, 2, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui->screen_main_label_10, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui->screen_main_label_10, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -54,8 +51,6 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_text_color(ui->screen_main_label_10, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui->screen_main_label_10, &lv_font_SourceHanSansSCBold_20, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_10, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_letter_space(ui->screen_main_label_10, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_line_space(ui->screen_main_label_10, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_10, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_10, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui->screen_main_label_10, 2, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -64,21 +59,17 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_10, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_10, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    //Write codes screen_main_label_temp_val (温度值 - SMG_55 大字体)
+    // 温度数值
     ui->screen_main_label_temp_val = lv_label_create(ui->screen_main_cont_temp_humi);
-    lv_obj_set_pos(ui->screen_main_label_temp_val, 35, 0);
-    lv_obj_set_size(ui->screen_main_label_temp_val, 138, 52);
+    lv_obj_set_pos(ui->screen_main_label_temp_val, 38, 0);
+    lv_obj_set_size(ui->screen_main_label_temp_val, 48, 56);
     lv_label_set_text(ui->screen_main_label_temp_val, "0.0");
     lv_label_set_long_mode(ui->screen_main_label_temp_val, LV_LABEL_LONG_WRAP);
-
-    //Write style for screen_main_label_temp_val, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_main_label_temp_val, 4, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_temp_val, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_temp_val, &lv_font_SMG_55, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_temp_val, &lv_font_SMG_40, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_temp_val, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_letter_space(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_line_space(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_temp_val, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -87,14 +78,13 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    //Write codes screen_main_label_8 (湿度标签 - 竖排, 带边框)
+    // -------- 湿度（右侧）--------
+    // 湿度标签 - 竖排"湿度"
     ui->screen_main_label_8 = lv_label_create(ui->screen_main_cont_temp_humi);
-    lv_obj_set_pos(ui->screen_main_label_8, 4, 59);
-    lv_obj_set_size(ui->screen_main_label_8, 29, 49);
-    lv_label_set_text(ui->screen_main_label_8, "湿度");
+    lv_obj_set_pos(ui->screen_main_label_8, 92, 4);
+    lv_obj_set_size(ui->screen_main_label_8, 32, 50);
+    lv_label_set_text(ui->screen_main_label_8, "湿\n度");
     lv_label_set_long_mode(ui->screen_main_label_8, LV_LABEL_LONG_WRAP);
-
-    //Write style for screen_main_label_8, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->screen_main_label_8, 2, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui->screen_main_label_8, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui->screen_main_label_8, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -103,8 +93,6 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_text_color(ui->screen_main_label_8, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui->screen_main_label_8, &lv_font_SourceHanSansSCBold_20, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_8, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_letter_space(ui->screen_main_label_8, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_line_space(ui->screen_main_label_8, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_8, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_8, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui->screen_main_label_8, 2, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -113,21 +101,17 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_8, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_8, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    //Write codes screen_main_label_humi_val (湿度值 - SMG_55 大字体)
+    // 湿度数值
     ui->screen_main_label_humi_val = lv_label_create(ui->screen_main_cont_temp_humi);
-    lv_obj_set_pos(ui->screen_main_label_humi_val, 35, 54);
-    lv_obj_set_size(ui->screen_main_label_humi_val, 139, 59);
+    lv_obj_set_pos(ui->screen_main_label_humi_val, 126, 0);
+    lv_obj_set_size(ui->screen_main_label_humi_val, 48, 56);
     lv_label_set_text(ui->screen_main_label_humi_val, "0.0");
     lv_label_set_long_mode(ui->screen_main_label_humi_val, LV_LABEL_LONG_WRAP);
-
-    //Write style for screen_main_label_humi_val, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->screen_main_label_humi_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_main_label_humi_val, 4, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_humi_val, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_humi_val, &lv_font_SMG_55, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_humi_val, &lv_font_SMG_40, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_humi_val, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_letter_space(ui->screen_main_label_humi_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_line_space(ui->screen_main_label_humi_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_humi_val, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_humi_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui->screen_main_label_humi_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
