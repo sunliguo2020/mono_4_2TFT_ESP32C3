@@ -293,14 +293,53 @@ void weather_poll_once(void) {
     free(response_buffer);
 }
 
+// 简单天气中文转英文
+static const char* translate_weather(const char* cn) {
+    if (!cn || cn[0]=='\0') return "--";
+    if (strcmp(cn, "晴")==0 || strcmp(cn, "晴间多云")==0) return "Sunny";
+    if (strcmp(cn, "多云")==0 || strcmp(cn, "少云")==0) return "Cloudy";
+    if (strcmp(cn, "阴")==0) return "Overcast";
+    if (strcmp(cn, "阵雨")==0 || strcmp(cn, "小雨")==0) return "Light Rain";
+    if (strcmp(cn, "中雨")==0) return "Mod Rain";
+    if (strcmp(cn, "大雨")==0 || strcmp(cn, "暴雨")==0) return "Heavy Rain";
+    if (strcmp(cn, "雷阵雨")==0) return "T-Storm";
+    if (strcmp(cn, "小雪")==0) return "Light Snow";
+    if (strcmp(cn, "中雪")==0) return "Mod Snow";
+    if (strcmp(cn, "大雪")==0) return "Heavy Snow";
+    if (strcmp(cn, "雾")==0 || strcmp(cn, "霾")==0) return "Foggy";
+    return cn; // fallback
+}
+
+// 风向中文转英文
+static const char* translate_wind(const char* cn) {
+    if (!cn) return "";
+    if (strcmp(cn, "北风")==0) return "N";
+    if (strcmp(cn, "南风")==0) return "S";
+    if (strcmp(cn, "西风")==0) return "W";
+    if (strcmp(cn, "东风")==0) return "E";
+    if (strcmp(cn, "东北风")==0) return "NE";
+    if (strcmp(cn, "西北风")==0) return "NW";
+    if (strcmp(cn, "东南风")==0) return "SE";
+    if (strcmp(cn, "西南风")==0) return "SW";
+    if (strcmp(cn, "北")==0) return "N";
+    if (strcmp(cn, "南")==0) return "S";
+    if (strcmp(cn, "西")==0) return "W";
+    if (strcmp(cn, "东")==0) return "E";
+    static char buf[16];
+    snprintf(buf, sizeof(buf), "%s", cn);
+    return buf;
+}
+
 void weather_apply_to_ui(void) {
     if (!s_weather_valid) { ESP_LOGW(TAG, "no valid weather data to apply"); return; }
+    const char *en_weather = translate_weather(s_weather_text);
+    const char *en_wind = translate_wind(s_weather_wind_dir);
     char temp_hi_lo[32];
-    snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%d°C", s_weather_temp_min, s_weather_temp_max);
+    snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%dC", s_weather_temp_min, s_weather_temp_max);
     char info_str[64];
-    snprintf(info_str, sizeof(info_str), "%s %s级 湿度%d%%", s_weather_wind_dir, s_weather_wind_scale, s_weather_humidity);
-    lvgl_ui_set_weather(s_weather_text, temp_hi_lo, info_str);
-    ESP_LOGI(TAG, "weather UI: %s, %s, %s", s_weather_text, temp_hi_lo, info_str);
+    snprintf(info_str, sizeof(info_str), "%s %s Hum:%d%%", en_wind, s_weather_wind_scale, s_weather_humidity);
+    lvgl_ui_set_weather(en_weather, temp_hi_lo, info_str);
+    ESP_LOGI(TAG, "weather UI: %s, %s, %s", en_weather, temp_hi_lo, info_str);
 }
 
 static SemaphoreHandle_t s_weather_done = NULL;
