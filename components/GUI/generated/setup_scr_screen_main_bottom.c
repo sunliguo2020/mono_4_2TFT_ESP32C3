@@ -61,11 +61,11 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_weather, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_weather, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // 保留以下标签供 lvgl_ui.c 中的 UI_MSG_WEATHER 使用
-    // screen_main_label_5 - 天气描述文本
+    // 天气显示标签，分行排列
+    // screen_main_label_5 - 天气描述（第一行）
     ui->screen_main_label_5 = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_5, 0, 0);
-    lv_obj_set_size(ui->screen_main_label_5, 107, 118);
+    lv_obj_set_pos(ui->screen_main_label_5, 0, 5);
+    lv_obj_set_size(ui->screen_main_label_5, 290, 30);
     lv_label_set_text(ui->screen_main_label_5, "");
     lv_label_set_long_mode(ui->screen_main_label_5, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_5, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -74,117 +74,45 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     lv_obj_set_style_text_opa(ui->screen_main_label_5, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_5, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_5, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui->screen_main_label_5, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui->screen_main_label_5, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui->screen_main_label_5, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui->screen_main_label_5, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(ui->screen_main_label_5, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(ui->screen_main_label_5, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(ui->screen_main_label_5, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui->screen_main_label_5, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_5, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // screen_main_label_20 - 温度
+    // screen_main_label_20 - 温度范围（第二行）
     ui->screen_main_label_20 = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_20, 0, 0);
-    lv_obj_set_size(ui->screen_main_label_20, 107, 118);
+    lv_obj_set_pos(ui->screen_main_label_20, 0, 40);
+    lv_obj_set_size(ui->screen_main_label_20, 290, 60);
     lv_label_set_text(ui->screen_main_label_20, "");
     lv_label_set_long_mode(ui->screen_main_label_20, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_20, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_20, &lv_font_SourceHanSansSCBold_24, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_20, &lv_font_SMG_55, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_20, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_20, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui->screen_main_label_20, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui->screen_main_label_20, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui->screen_main_label_20, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui->screen_main_label_20, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(ui->screen_main_label_20, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(ui->screen_main_label_20, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(ui->screen_main_label_20, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui->screen_main_label_20, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // screen_main_label_19 - 备用
-    ui->screen_main_label_19 = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_19, 0, 0);
-    lv_obj_set_size(ui->screen_main_label_19, 107, 118);
-    lv_label_set_text(ui->screen_main_label_19, "");
-    lv_label_set_long_mode(ui->screen_main_label_19, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_border_width(ui->screen_main_label_19, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_color(ui->screen_main_label_19, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_19, &lv_font_SourceHanSansSCBold_24, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui->screen_main_label_19, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui->screen_main_label_19, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(ui->screen_main_label_19, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui->screen_main_label_19, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui->screen_main_label_19, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui->screen_main_label_19, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui->screen_main_label_19, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(ui->screen_main_label_19, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-
-    // screen_main_label_18 - 备用
-    ui->screen_main_label_18 = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_18, 0, 0);
-    lv_obj_set_size(ui->screen_main_label_18, 107, 118);
-    lv_label_set_text(ui->screen_main_label_18, "");
-    lv_label_set_long_mode(ui->screen_main_label_18, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_border_width(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_color(ui->screen_main_label_18, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_18, &lv_font_SourceHanSansSCBold_24, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui->screen_main_label_18, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui->screen_main_label_18, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui->screen_main_label_18, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui->screen_main_label_18, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui->screen_main_label_18, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui->screen_main_label_18, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-
-    // screen_main_label_run_hour - 湿度
+    // screen_main_label_run_hour - 风向风力湿度（第三行）
     ui->screen_main_label_run_hour = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_run_hour, 0, 0);
-    lv_obj_set_size(ui->screen_main_label_run_hour, 107, 118);
+    lv_obj_set_pos(ui->screen_main_label_run_hour, 0, 105);
+    lv_obj_set_size(ui->screen_main_label_run_hour, 290, 42);
     lv_label_set_text(ui->screen_main_label_run_hour, "");
     lv_label_set_long_mode(ui->screen_main_label_run_hour, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_run_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_run_hour, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_run_hour, &lv_font_SourceHanSansSCBold_24, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_run_hour, &lv_font_SourceHanSansSCBold_20, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_run_hour, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_run_hour, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_run_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui->screen_main_label_run_hour, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui->screen_main_label_run_hour, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui->screen_main_label_run_hour, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui->screen_main_label_run_hour, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(ui->screen_main_label_run_hour, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(ui->screen_main_label_run_hour, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(ui->screen_main_label_run_hour, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui->screen_main_label_run_hour, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_run_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-
-    // screen_main_label_run_min - 备用
-    ui->screen_main_label_run_min = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_run_min, 0, 0);
-    lv_obj_set_size(ui->screen_main_label_run_min, 107, 118);
-    lv_label_set_text(ui->screen_main_label_run_min, "");
-    lv_label_set_long_mode(ui->screen_main_label_run_min, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_border_width(ui->screen_main_label_run_min, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_color(ui->screen_main_label_run_min, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_run_min, &lv_font_SourceHanSansSCBold_24, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui->screen_main_label_run_min, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui->screen_main_label_run_min, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(ui->screen_main_label_run_min, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui->screen_main_label_run_min, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui->screen_main_label_run_min, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui->screen_main_label_run_min, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui->screen_main_label_run_min, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(ui->screen_main_label_run_min, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-
-    // screen_main_label_2 - 备用
-    ui->screen_main_label_2 = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_2, 0, 0);
-    lv_obj_set_size(ui->screen_main_label_2, 107, 118);
-    lv_label_set_text(ui->screen_main_label_2, "");
-    lv_label_set_long_mode(ui->screen_main_label_2, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_border_width(ui->screen_main_label_2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_color(ui->screen_main_label_2, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_2, &lv_font_SourceHanSansSCBold_24, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui->screen_main_label_2, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui->screen_main_label_2, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(ui->screen_main_label_2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui->screen_main_label_2, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui->screen_main_label_2, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui->screen_main_label_2, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui->screen_main_label_2, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(ui->screen_main_label_2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 }
