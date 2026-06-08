@@ -348,21 +348,26 @@ static const char* translate_wind(const char* cn) {
 void weather_apply_to_ui(void) {
     if (!s_weather_valid) { ESP_LOGW(TAG, "no valid weather data to apply"); return; }
     
-    // 判断是今天还是明天
-    const char *day_label = "";
-    int ymd = weather_calc_ymd();
-    if (ymd != 0 && s_weather_fxdate[0]) {
-        int fxd = atoi(s_weather_fxdate);
-        if (fxd == ymd) day_label = "Today";
-        else if (fxd == ymd + 1) day_label = "Tomor";
-        else day_label = "Day+2";
+    // 从 fxDate 提取月-日格式 "MM-DD"
+    char date_str[8] = "";
+    if (s_weather_fxdate[0] && strlen(s_weather_fxdate) >= 10) {
+        date_str[0] = s_weather_fxdate[5];  // 月十位
+        date_str[1] = s_weather_fxdate[6];  // 月个位
+        date_str[2] = '-';
+        date_str[3] = s_weather_fxdate[8];  // 日十位
+        date_str[4] = s_weather_fxdate[9];  // 日个位
+        date_str[5] = '\0';
     }
     
     const char *en_weather = translate_weather(s_weather_text);
     const char *en_wind = translate_wind(s_weather_wind_dir);
     
     char weather_line[48];
-    snprintf(weather_line, sizeof(weather_line), "%s %s", day_label, en_weather);
+    if (date_str[0]) {
+        snprintf(weather_line, sizeof(weather_line), "%s %s", date_str, en_weather);
+    } else {
+        snprintf(weather_line, sizeof(weather_line), "%s", en_weather);
+    }
     char temp_hi_lo[32];
     snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%dC", s_weather_temp_min, s_weather_temp_max);
     char info_str[64];
