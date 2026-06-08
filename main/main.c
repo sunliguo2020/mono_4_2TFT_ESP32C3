@@ -268,7 +268,7 @@ void app_main(void)
     ESP_LOGI(TAG, "waiting for time sync before weather...");
     hw_time_wait_for_sync(60000);
 
-    // 获取天气（在独立高栈任务中执行，避免 main 栈溢出）
+    // 先获取天气数据（屏幕初始化前），缓存数据
     weather_poll_once_blocking();
 
     // ========== 初始化 LVGL 显示 ==========
@@ -282,6 +282,9 @@ void app_main(void)
     lvgl_ui_show_sleep_screen(false);
     lvgl_port_unlock();
     lvgl_ui_wait_idle(500);
+
+    // 将缓存的天气数据推送到 UI
+    weather_apply_to_ui();
 
     // 把已缓存的传感器数据推送到 UI
     aht30_y_read_update_ui();

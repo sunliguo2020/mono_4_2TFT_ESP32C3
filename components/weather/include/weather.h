@@ -33,6 +33,9 @@ int weather_get_humidity(void);
 // 数据是否有效
 bool weather_is_valid(void);
 
+// 将缓存的天气数据推送到 UI
+void weather_apply_to_ui(void);
+
 // 获取天气图标符号
 const char* weather_get_icon_symbol(void);
 

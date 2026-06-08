@@ -585,21 +585,27 @@ void weather_poll_once(void) {
         return;
     }
 
-    // 更新 UI
-    char temp_str[16];
-    snprintf(temp_str, sizeof(temp_str), "%d°C", s_weather_temp);
-    char humi_str[16];
-    snprintf(humi_str, sizeof(humi_str), "%d%%", s_weather_humidity);
-    const char *icon_sym = weather_icon_to_symbol(s_weather_icon);
-    lvgl_ui_set_weather(s_weather_text, temp_str, icon_sym);
-
+    // 标记数据有效，不立即推送到 UI（由调用者决定何时推送）
     s_weather_valid = true;
     if (ymd != 0) {
         s_weather_last_ymd = ymd;
     }
 
-    ESP_LOGI(TAG, "weather updated: %s %s", s_weather_text, temp_str);
+    ESP_LOGI(TAG, "weather fetched: %s, temp=%d°C, humidity=%d%%", s_weather_text, s_weather_temp, s_weather_humidity);
     free(response_buffer);
+}
+
+// 将缓存的天气数据推送到 UI
+void weather_apply_to_ui(void) {
+    if (!s_weather_valid) {
+        ESP_LOGW(TAG, "no valid weather data to apply");
+        return;
+    }
+    char temp_str[16];
+    snprintf(temp_str, sizeof(temp_str), "%d°C", s_weather_temp);
+    const char *icon_sym = weather_icon_to_symbol(s_weather_icon);
+    lvgl_ui_set_weather(s_weather_text, temp_str, icon_sym);
+    ESP_LOGI(TAG, "weather applied to UI: %s %s", s_weather_text, temp_str);
 }
 
 // 在独立高栈任务中执行天气请求并返回前阻塞主线程
