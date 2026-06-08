@@ -19,8 +19,8 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     // ============================================================
     //Write codes screen_main_cont_bottom
     ui->screen_main_cont_bottom = lv_obj_create(ui->screen_main);
-    lv_obj_set_pos(ui->screen_main_cont_bottom, 5, 243);
-    lv_obj_set_size(ui->screen_main_cont_bottom, 290, 157);
+    lv_obj_set_pos(ui->screen_main_cont_bottom, 5, 248);
+    lv_obj_set_size(ui->screen_main_cont_bottom, 290, 152);
     lv_obj_set_scrollbar_mode(ui->screen_main_cont_bottom, LV_SCROLLBAR_MODE_OFF);
 
     //Write style for screen_main_cont_bottom, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
