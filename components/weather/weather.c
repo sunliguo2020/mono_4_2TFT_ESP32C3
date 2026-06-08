@@ -16,6 +16,7 @@
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "lvgl_display.h"
 #include "lvgl.h"
 #include "lwip/dns.h"
@@ -23,6 +24,7 @@
 #include "lwip/netdb.h"
 #include "hw_time_Y.h"
 #include "esp_crt_bundle.h"
+#include "miniz.h"
 
 #define TAG "weather"
 
@@ -36,7 +38,7 @@
 // 也可以使用城市ID，例如 "101010100" 表示北京
 // #define WEATHER_LOCATION "101010100"
 
-#define WEATHER_API_HOST   "devapi.qweather.com"
+#define WEATHER_API_HOST   "mg7fc3p9rj.re.qweatherapi.com"
 #define WEATHER_API_PATH   "/v7/weather/now"
 
 #define MAX_HTTP_OUTPUT_BUFFER 2048
@@ -545,6 +547,34 @@ void weather_poll_once(void) {
         return;
     }
 
+    // gzip 解压（和风天气 API 默认使用 gzip）
+    bool is_gzip = (resp.len >= 2 && (uint8_t)response_buffer[0] == 0x1f && (uint8_t)response_buffer[1] == 0x8b);
+    if (is_gzip) {
+        ESP_LOGI(TAG, "gzip compressed (%u bytes), decompressing...", (unsigned)resp.len);
+        size_t offset = 10;
+        uint8_t flg = (uint8_t)response_buffer[3];
+        if ((flg & 0x04) && offset + 2 <= resp.len) { uint16_t xlen = (uint8_t)response_buffer[offset] | ((uint8_t)response_buffer[offset+1]<<8); offset += 2 + xlen; }
+        if (flg & 0x08) { while (offset < resp.len && response_buffer[offset]) offset++; offset++; }
+        if (flg & 0x10) { while (offset < resp.len && response_buffer[offset]) offset++; offset++; }
+        if ((flg & 0x02) && offset + 2 <= resp.len) offset += 2;
+        if (offset < resp.len) {
+            size_t out_cap = (resp.len - offset) * 4;
+            if (out_cap < 512) out_cap = 512;
+            char *decomp_buf = (char *)calloc(1, out_cap + 1);
+            if (decomp_buf) {
+                tinfl_decompressor inflator; tinfl_init(&inflator);
+                size_t in_rem = resp.len - offset, out_rem = out_cap;
+                tinfl_status st = tinfl_decompress(&inflator, (const mz_uint8*)(response_buffer+offset), &in_rem, (mz_uint8*)decomp_buf, (mz_uint8*)decomp_buf, &out_rem, TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
+                if (st == TINFL_STATUS_DONE || st == TINFL_STATUS_HAS_MORE_OUTPUT) {
+                    decomp_buf[out_cap - out_rem] = '\0';
+                    ESP_LOGI(TAG, "decompressed: %u -> %u bytes", (unsigned)resp.len, (unsigned)(out_cap - out_rem));
+                    free(response_buffer);
+                    response_buffer = decomp_buf;
+                    resp.buf = decomp_buf; resp.len = out_cap - out_rem;
+                } else { ESP_LOGW(TAG, "decompress failed status=%d", (int)st); free(decomp_buf); }
+            }
+        }
+    }
     ESP_LOGI(TAG, "weather resp: %s", response_buffer);
 
     // 解析 JSON
@@ -570,4 +600,20 @@ void weather_poll_once(void) {
 
     ESP_LOGI(TAG, "weather updated: %s %s", s_weather_text, temp_str);
     free(response_buffer);
+}
+
+// 在独立高栈任务中执行天气请求并返回前阻塞主线程
+static SemaphoreHandle_t s_weather_done = NULL;
+static void weather_poll_task(void *arg) {
+    (void)arg;
+    weather_poll_once();
+    xSemaphoreGive(s_weather_done);
+    vTaskDelete(NULL);
+}
+
+void weather_poll_once_blocking(void) {
+    if (!s_weather_done) s_weather_done = xSemaphoreCreateBinary();
+    xTaskCreate(weather_poll_task, "weather_poll", 16384, NULL, 5, NULL);
+    // 等待任务完成，无超时
+    xSemaphoreTake(s_weather_done, portMAX_DELAY);
 }

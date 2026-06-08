@@ -126,8 +126,7 @@ static void on_wifi_connected(void)
         handle_io5_wakeup();
     }
 
-    weather_poll_once();
-    sleep_start_light();
+    // 天气请求由 app_main 在显示初始化前完成，这里不再重复调用
 }
 
 /**
@@ -243,8 +242,36 @@ void app_main(void)
              (int)esp_sleep_get_wakeup_cause(), (uint32_t)(gpio_wakeup >> 32),
              (uint32_t)gpio_wakeup);
 
-    // 先初始化 LVGL 显示，确保显示缓冲区已分配
-    // 注意：必须在 BLE 初始化之前完成，否则 BLE 占用内存后 LVGL 可能分配失败
+    // Install GPIO ISR service once for IO5 wake and AS312 motion.
+    esp_err_t isr_ret = gpio_install_isr_service(0);
+    if (isr_ret != ESP_OK && isr_ret != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW("main", "gpio ISR service init failed: 0x%x",
+                 (unsigned)isr_ret);
+    }
+
+    // 先初始化传感器和 Wi-Fi，暂不启动屏幕
+    aht30_y_init();
+    aht30_y_start();
+    opt3001_y_init();
+    battery_y_init();
+    as312_y_init(AS312_GPIO);
+    opt3001_y_config_interrupt(OPT3001_TEST_LOW_LUX, OPT3001_TEST_HIGH_LUX,
+                               true);
+
+    // Wi-Fi 连接状态机（会阻塞等待连接）
+    while (s_state != STATE_WIFI_CONNECTED) {
+        state_machine_run();
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    // 等待时间同步完成（TLS 证书验证需要正确的时间）
+    ESP_LOGI(TAG, "waiting for time sync before weather...");
+    hw_time_wait_for_sync(60000);
+
+    // 获取天气（在独立高栈任务中执行，避免 main 栈溢出）
+    weather_poll_once_blocking();
+
+    // ========== 初始化 LVGL 显示 ==========
     lv_display_t *disp = lvgl_display_init();
     if (!disp) {
         abort();
@@ -256,23 +283,13 @@ void app_main(void)
     lvgl_port_unlock();
     lvgl_ui_wait_idle(500);
 
-    // Install GPIO ISR service once for IO5 wake and AS312 motion.
-    esp_err_t isr_ret = gpio_install_isr_service(0);
-    if (isr_ret != ESP_OK && isr_ret != ESP_ERR_INVALID_STATE) {
-        ESP_LOGW("main", "gpio ISR service init failed: 0x%x",
-                 (unsigned)isr_ret);
-    }
-
-    aht30_y_init();
-    aht30_y_start();
+    // 把已缓存的传感器数据推送到 UI
     aht30_y_read_update_ui();
-    opt3001_y_init();
     opt3001_y_read_update_ui();
-    battery_y_init();
     battery_y_read_update_ui();
-    as312_y_init(AS312_GPIO);
-    opt3001_y_config_interrupt(OPT3001_TEST_LOW_LUX, OPT3001_TEST_HIGH_LUX,
-                               true);
+
+    // 屏幕显示完毕后再启动 sleep 任务
+    sleep_start_light();
 
 #if OPT3001_DEEPSLEEP_TEST
     opt3001_y_run_deepsleep_test(OPT3001_DEEPSLEEP_WAKE_LOW,

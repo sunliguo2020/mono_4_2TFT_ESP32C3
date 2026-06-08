@@ -6,8 +6,11 @@
 extern "C" {
 #endif
 
-// 执行一次天气查询并更新 UI
+// 执行一次天气查询并更新 UI（同步，需要大量栈空间）
 void weather_poll_once(void);
+
+// 在独立高栈任务中执行天气查询，阻塞当前线程等待完成
+void weather_poll_once_blocking(void);
 
 // 检查是否需要更新天气
 bool weather_need_update(void);

@@ -288,12 +288,6 @@ static void sleep_step_run_network(bool low_lux, bool motion_recent,
     s_battery_update_cb();
   }
 
-  // 查询天气（每天一次）
-  if (weather_need_update()) {
-    ESP_LOGI(TAG, "weather update needed, polling...");
-    weather_poll_once();
-  }
-
   lvgl_ui_pause(false);
   vTaskDelay(pdMS_TO_TICKS(20));
 }
