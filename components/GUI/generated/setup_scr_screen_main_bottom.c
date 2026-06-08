@@ -14,12 +14,13 @@
 void setup_scr_screen_main_bottom(lv_ui *ui)
 {
     // ============================================================
-    // 底部区域 screen_main_cont_bottom (y=178, 289x112)
+    // 底部区域 screen_main_cont_bottom (y=282, 290x118)
+    // 天气数据全宽显示在屏幕最下面一行
     // ============================================================
     //Write codes screen_main_cont_bottom
     ui->screen_main_cont_bottom = lv_obj_create(ui->screen_main);
-    lv_obj_set_pos(ui->screen_main_cont_bottom, 187, 178);
-    lv_obj_set_size(ui->screen_main_cont_bottom, 107, 118);
+    lv_obj_set_pos(ui->screen_main_cont_bottom, 5, 282);
+    lv_obj_set_size(ui->screen_main_cont_bottom, 290, 118);
     lv_obj_set_scrollbar_mode(ui->screen_main_cont_bottom, LV_SCROLLBAR_MODE_OFF);
 
     //Write style for screen_main_cont_bottom, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
