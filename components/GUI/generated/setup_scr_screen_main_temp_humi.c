@@ -14,12 +14,12 @@
 void setup_scr_screen_main_temp_humi(lv_ui *ui)
 {
     // ============================================================
-    // 温湿度区域 screen_main_cont_temp_humi (x=5, y=178, 177x118)
-    // 左右布局：左侧温度，右侧湿度
+    // 温湿度区域 screen_main_cont_temp_humi (x=5, y=178, 290x118)
+    // 左右布局：左侧温度，右侧湿度，占满全宽
     // ============================================================
     ui->screen_main_cont_temp_humi = lv_obj_create(ui->screen_main);
     lv_obj_set_pos(ui->screen_main_cont_temp_humi, 5, 178);
-    lv_obj_set_size(ui->screen_main_cont_temp_humi, 177, 118);
+    lv_obj_set_size(ui->screen_main_cont_temp_humi, 290, 118);
     lv_obj_set_scrollbar_mode(ui->screen_main_cont_temp_humi, LV_SCROLLBAR_MODE_OFF);
 
     lv_obj_set_style_border_width(ui->screen_main_cont_temp_humi, 2, LV_PART_MAIN|LV_STATE_DEFAULT);
