@@ -14,8 +14,8 @@
 void setup_scr_screen_main_temp_humi(lv_ui *ui)
 {
     // ============================================================
-    // 温湿度区域 screen_main_cont_temp_humi (x=5, y=178, 290x118)
-    // 左右布局：左侧温度，右侧湿度，占满全宽
+    // 温湿度区域 (x=5, y=178, 290x118)，左右平分
+    // 左侧温度区域（0-145），右侧湿度区域（145-290）
     // ============================================================
     ui->screen_main_cont_temp_humi = lv_obj_create(ui->screen_main);
     lv_obj_set_pos(ui->screen_main_cont_temp_humi, 5, 178);
@@ -36,11 +36,11 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_pad_right(ui->screen_main_cont_temp_humi, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_cont_temp_humi, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // -------- 温度（左侧）--------
+    // -------- 温度（左半边：0-145）--------
     // 温度标签 - 竖排"温度"
     ui->screen_main_label_10 = lv_label_create(ui->screen_main_cont_temp_humi);
-    lv_obj_set_pos(ui->screen_main_label_10, 4, 4);
-    lv_obj_set_size(ui->screen_main_label_10, 32, 50);
+    lv_obj_set_pos(ui->screen_main_label_10, 5, 5);
+    lv_obj_set_size(ui->screen_main_label_10, 30, 50);
     lv_label_set_text(ui->screen_main_label_10, "温\n度");
     lv_label_set_long_mode(ui->screen_main_label_10, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_10, 2, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -59,10 +59,10 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_10, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_10, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // 温度数值
+    // 温度数值（SMG_40 字体，宽度充足可显示完整）
     ui->screen_main_label_temp_val = lv_label_create(ui->screen_main_cont_temp_humi);
-    lv_obj_set_pos(ui->screen_main_label_temp_val, 38, 0);
-    lv_obj_set_size(ui->screen_main_label_temp_val, 48, 56);
+    lv_obj_set_pos(ui->screen_main_label_temp_val, 38, 8);
+    lv_obj_set_size(ui->screen_main_label_temp_val, 120, 48);
     lv_label_set_text(ui->screen_main_label_temp_val, "0.0");
     lv_label_set_long_mode(ui->screen_main_label_temp_val, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -78,11 +78,11 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_temp_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // -------- 湿度（右侧）--------
+    // -------- 湿度（右半边：145-290）--------
     // 湿度标签 - 竖排"湿度"
     ui->screen_main_label_8 = lv_label_create(ui->screen_main_cont_temp_humi);
-    lv_obj_set_pos(ui->screen_main_label_8, 92, 4);
-    lv_obj_set_size(ui->screen_main_label_8, 32, 50);
+    lv_obj_set_pos(ui->screen_main_label_8, 155, 5);
+    lv_obj_set_size(ui->screen_main_label_8, 30, 50);
     lv_label_set_text(ui->screen_main_label_8, "湿\n度");
     lv_label_set_long_mode(ui->screen_main_label_8, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_8, 2, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -101,10 +101,10 @@ void setup_scr_screen_main_temp_humi(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_8, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_8, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // 湿度数值
+    // 湿度数值（SMG_40 字体，宽度充足可显示完整）
     ui->screen_main_label_humi_val = lv_label_create(ui->screen_main_cont_temp_humi);
-    lv_obj_set_pos(ui->screen_main_label_humi_val, 126, 0);
-    lv_obj_set_size(ui->screen_main_label_humi_val, 48, 56);
+    lv_obj_set_pos(ui->screen_main_label_humi_val, 188, 8);
+    lv_obj_set_size(ui->screen_main_label_humi_val, 120, 48);
     lv_label_set_text(ui->screen_main_label_humi_val, "0.0");
     lv_label_set_long_mode(ui->screen_main_label_humi_val, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_humi_val, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
