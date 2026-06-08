@@ -47,6 +47,7 @@ extern const char weather_root_cert_pem_end[]
 
 static char s_weather_text[32] = "";
 static char s_weather_icon[8] = "";
+static char s_weather_fxdate[16] = "";
 static int s_weather_temp_max = 0;
 static int s_weather_temp_min = 0;
 static int s_weather_humidity = 0;
@@ -82,6 +83,16 @@ static bool parse_weather_json(const char *buf) {
     while (*code_val == ' ' || *code_val == '\t' || *code_val == '"') code_val++;
     if (code_val[0] != '2' || code_val[1] != '0' || code_val[2] != '0') {
         ESP_LOGW(TAG, "API code not 200: %.3s", code_val); return false; }
+
+    // 提取预报日期 fxDate
+    const char *fxd_key = strstr(buf, "\"fxDate\"");
+    if (fxd_key) {
+        const char *p = strchr(fxd_key, ':');
+        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
+            const char *start = p; const char *end = strchr(p, '"');
+            if (end && end > start) { size_t len = end - start;
+                if (len >= sizeof(s_weather_fxdate)) len = sizeof(s_weather_fxdate) - 1;
+                memcpy(s_weather_fxdate, start, len); s_weather_fxdate[len] = '\0'; } } }
 
     const char *text_key = strstr(buf, "\"textDay\"");
     if (!text_key) text_key = strstr(buf, "\"text\"");
@@ -148,8 +159,10 @@ static bool parse_weather_json(const char *buf) {
 
     if (s_weather_text[0] == '\0' && s_weather_temp_max == 0) {
         ESP_LOGW(TAG, "weather parse: no valid data"); return false; }
-    ESP_LOGI(TAG, "weather: %s, %d~%dC, %s %s, humi=%d%%", s_weather_text,
-             s_weather_temp_min, s_weather_temp_max, s_weather_wind_dir, s_weather_wind_scale, s_weather_humidity);
+    ESP_LOGI(TAG, "weather: %s %s, %d~%dC, %s %s, hum=%d%%",
+             s_weather_fxdate, s_weather_text,
+             s_weather_temp_min, s_weather_temp_max,
+             s_weather_wind_dir, s_weather_wind_scale, s_weather_humidity);
     return true;
 }
 
@@ -288,8 +301,10 @@ void weather_poll_once(void) {
 
     s_weather_valid = true;
     if (ymd != 0) s_weather_last_ymd = ymd;
-    ESP_LOGI(TAG, "weather fetched: %s, %d~%dC, %s %s, hum=%d%%",
-             s_weather_text, s_weather_temp_min, s_weather_temp_max, s_weather_wind_dir, s_weather_wind_scale, s_weather_humidity);
+    ESP_LOGI(TAG, "weather fetched: %s %s, %d~%dC, %s %s, hum=%d%%",
+             s_weather_fxdate, s_weather_text,
+             s_weather_temp_min, s_weather_temp_max,
+             s_weather_wind_dir, s_weather_wind_scale, s_weather_humidity);
     free(response_buffer);
 }
 
@@ -307,7 +322,7 @@ static const char* translate_weather(const char* cn) {
     if (strcmp(cn, "中雪")==0) return "Mod Snow";
     if (strcmp(cn, "大雪")==0) return "Heavy Snow";
     if (strcmp(cn, "雾")==0 || strcmp(cn, "霾")==0) return "Foggy";
-    return cn; // fallback
+    return cn;
 }
 
 // 风向中文转英文
@@ -332,14 +347,29 @@ static const char* translate_wind(const char* cn) {
 
 void weather_apply_to_ui(void) {
     if (!s_weather_valid) { ESP_LOGW(TAG, "no valid weather data to apply"); return; }
+    
+    // 判断是今天还是明天
+    const char *day_label = "";
+    int ymd = weather_calc_ymd();
+    if (ymd != 0 && s_weather_fxdate[0]) {
+        int fxd = atoi(s_weather_fxdate);
+        if (fxd == ymd) day_label = "Today";
+        else if (fxd == ymd + 1) day_label = "Tomor";
+        else day_label = "Day+2";
+    }
+    
     const char *en_weather = translate_weather(s_weather_text);
     const char *en_wind = translate_wind(s_weather_wind_dir);
+    
+    char weather_line[48];
+    snprintf(weather_line, sizeof(weather_line), "%s %s", day_label, en_weather);
     char temp_hi_lo[32];
     snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%dC", s_weather_temp_min, s_weather_temp_max);
     char info_str[64];
     snprintf(info_str, sizeof(info_str), "%s %s Hum:%d%%", en_wind, s_weather_wind_scale, s_weather_humidity);
-    lvgl_ui_set_weather(en_weather, temp_hi_lo, info_str);
-    ESP_LOGI(TAG, "weather UI: %s, %s, %s", en_weather, temp_hi_lo, info_str);
+    
+    lvgl_ui_set_weather(weather_line, temp_hi_lo, info_str);
+    ESP_LOGI(TAG, "weather UI: %s, %s, %s", weather_line, temp_hi_lo, info_str);
 }
 
 static SemaphoreHandle_t s_weather_done = NULL;
