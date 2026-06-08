@@ -1,5 +1,77 @@
 # 项目变更日志
 
+## [2026-06-08] 和风天气获取与显示 + 温湿度显示修复 + 屏幕布局优化
+
+### 1. 和风天气 API 集成
+
+**涉及文件**：`components/weather/weather.c`、`components/weather/include/weather.h`
+
+**修改内容**：
+- 接入和风天气 API（`mg7fc3p9rj.re.qweatherapi.com`），获取实时天气数据
+- 实现 gzip 解压：使用 miniz 库对压缩响应解压（纯 deflate 模式）
+- 使用 `crt_bundle_attach` 全局证书包验证 TLS 连接
+- 新增 `weather_poll_once_blocking()` 异步阻塞函数（信号量同步）
+- 时间同步等待超时调整为 60 秒
+
+### 2. 栈溢出修复
+
+**涉及文件**：`components/weather/weather.c`、`main/main.c`
+
+**问题根因**：TLS 握手需要大量栈空间（约 10-12KB），main 任务栈不足导致崩溃
+
+**修复方案**：
+- 将天气请求移至独立高栈任务（16384 字节），通过信号量实现异步阻塞
+- 在 `app_main` 中调用 `weather_poll_once_blocking()` 等待任务完成
+
+### 3. 初始化顺序优化
+
+**涉及文件**：`main/main.c`
+
+**修改内容**：调整 `app_main` 初始化顺序，解决 LVGL 初始化卡死问题
+1. 传感器初始化（AHT30/OPT3001/BATTERY/AS312）— 不依赖屏幕
+2. WiFi 连接（阻塞等待 STATE_WIFI_CONNECTED）
+3. SNTP 时间同步（60 秒超时）
+4. 天气请求（独立高栈任务）
+5. LVGL 屏幕初始化
+6. 推送传感器/天气数据到 UI
+7. 启动 sleep 任务
+
+### 4. 温湿度传感器数据显示修复
+
+**涉及文件**：`components/AHT30_Y/AHT30_Y.c`、`components/GUI/generated/gui_guider.c`
+
+**修复内容**：
+- AHT30_Y.c：补充缺失的 `s_consecutive_failures` 和 `MAX_CONSECUTIVE_FAILURES` 声明
+- gui_guider.c：`setup_ui()` 中添加 `setup_scr_screen_main_temp_humi()` 调用
+
+### 5. 屏幕布局重构
+
+**涉及文件**：`components/GUI/generated/setup_scr_screen_main_temp_humi.c`、`components/GUI/generated/setup_scr_screen_main_bottom.c`
+
+**布局调整**：
+- 温湿度区域改为**左右平分布局**（290×65）：
+  - 左侧温度：竖排标签"温\n度"（30×50）+ SMG_40 数值（120×48）
+  - 右侧湿度：竖排标签"湿\n度"（30×50）+ SMG_40 数值（120×48）
+- 天气区域移至屏幕底部（5, 248, 290×152），全宽显示
+- 各区域之间保留 5px 一致间距
+
+### 6. 内存竞争修复
+
+**涉及文件**：`components/sleep/sleep.c`、`main/main.c`
+
+**修复内容**：
+- 移除 sleep 任务中对 `weather_is_busy()` 的调用
+- 天气请求在 sleep 任务启动前完成，两个高栈任务错开运行
+- 移除 sleep.c 中 `sleep_step_enter_sleep()` 中重复的天气等待逻辑
+
+### 7. 文档更新
+
+**涉及文件**：`README.md`
+
+**更新内容**：屏幕布局 ASCII 图、详细尺寸表、温湿度/天气区域详细说明
+
+---
+
 ## [2026-05-27] BLE 配网 + WiFi 自动重连 + 电池 ADC 修正
 
 ### 1. BLE 配网功能（WiFi 失败后自动开启）
@@ -124,8 +196,7 @@ STATE_WIFI_CONNECTED
 2. 手机打开 BLE 扫描 → 找到 "ESP32-C3-WiFi"
 3. 手机连接设备 → 找到特征值 UUID 0xFFE1
 4. 手机写入数据（分两次发送）:
-   第一次: "ssid:rizhixinxi,pwd:"
-   第二次: "ruizhi2016"
+   第一次: "ssid:rizhixinxi,pwd:ruizhi2016"
 5. 设备累积接收 → 解析成功 → 保存到 NVS
 6. 设备关闭 BLE → 连接 WiFi
 7. WiFi 连接成功 → 更新图标 → 开始正常工作
