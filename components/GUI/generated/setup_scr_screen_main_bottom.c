@@ -80,7 +80,7 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_5, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_5, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // screen_main_label_20 - 温度范围（第二行）
+    // screen_main_label_20 - 温度范围（第二行，使用中文字体以支持"~"和"°C"符号）
     ui->screen_main_label_20 = lv_label_create(ui->screen_main_cont_bottom);
     lv_obj_set_pos(ui->screen_main_label_20, 0, 40);
     lv_obj_set_size(ui->screen_main_label_20, 290, 60);
@@ -88,7 +88,7 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     lv_label_set_long_mode(ui->screen_main_label_20, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_20, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_20, &lv_font_SMG_55, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_20, &lv_font_SourceHanSansSCBold_38, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_20, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_20, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
