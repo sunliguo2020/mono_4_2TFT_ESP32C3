@@ -45,14 +45,24 @@ extern const char weather_root_cert_pem_start[]
 extern const char weather_root_cert_pem_end[]
     asm("_binary_weather_root_cert_pem_end");
 
+// 今天（第1天）
 static char s_weather_text[32] = "";
-static char s_weather_icon[8] = "";
 static char s_weather_fxdate[16] = "";
 static int s_weather_temp_max = 0;
 static int s_weather_temp_min = 0;
 static char s_weather_wind_dir[32] = "";
 static char s_weather_wind_scale[16] = "";
 static char s_weather_sunrise[8] = "";
+
+// 明天（第2天）
+static char s_weather_text_tmrw[32] = "";
+static char s_weather_fxdate_tmrw[16] = "";
+static int s_weather_temp_max_tmrw = 0;
+static int s_weather_temp_min_tmrw = 0;
+static char s_weather_wind_dir_tmrw[32] = "";
+static char s_weather_wind_scale_tmrw[16] = "";
+static char s_weather_sunrise_tmrw[8] = "";
+
 static bool s_weather_valid = false;
 static int s_weather_last_ymd = 0;
 static int s_weather_update_attempts = 0;
@@ -73,6 +83,124 @@ static int weather_calc_ymd(void) {
            timeinfo.tm_mday;
 }
 
+// ---------- JSON字段解析辅助函数 ----------
+
+// 查找 buf 中的 field，读取字符串值到 out
+static const char* parse_str(const char *buf, const char *field, char *out, size_t out_sz) {
+    if (!buf) return NULL;
+    const char *key = strstr(buf, field);
+    if (!key) return buf;
+    const char *p = strchr(key, ':');
+    if (!p) return buf;
+    p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
+    const char *end = strchr(p, '"');
+    if (end && end > p) {
+        size_t len = end - p;
+        if (len >= out_sz) len = out_sz - 1;
+        memcpy(out, p, len); out[len] = '\0';
+        return end + 1;
+    }
+    return buf;
+}
+
+// 查找 buf 中的 field，读取整数值到 out
+static const char* parseInt(const char *buf, const char *field, int *out) {
+    if (!buf) return NULL;
+    const char *key = strstr(buf, field);
+    if (!key) return buf;
+    const char *p = strchr(key, ':');
+    if (!p) return buf;
+    p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
+    if (*p >= '0' && *p <= '9') {
+        *out = 0; bool neg = false;
+        if (*p == '-') { neg = true; p++; }
+        while (*p >= '0' && *p <= '9') { *out = *out * 10 + (*p - '0'); p++; }
+        if (neg) *out = -*out;
+    }
+    return p;
+}
+
+// 查找 windScale（字符串或数值类型）
+static const char* parse_wind_scale(const char *buf, const char *field, char *out, size_t out_sz) {
+    if (!buf) return buf;
+    const char *key = strstr(buf, field);
+    if (!key) return buf;
+    const char *p = strchr(key, ':');
+    if (!p) return buf;
+    p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
+
+    // 尝试字符串值
+    const char *end = strchr(p, '"');
+    if (end && end > p) {
+        size_t len = end - p;
+        if (len >= out_sz) len = out_sz - 1;
+        memcpy(out, p, len); out[len] = '\0';
+        return end + 1;
+    }
+    // 尝试数值
+    const char *nend = p;
+    while (*nend >= '0' && *nend <= '9') nend++;
+    if (nend > p) {
+        size_t len = nend - p;
+        if (len >= out_sz) len = out_sz - 1;
+        memcpy(out, p, len); out[len] = '\0';
+    }
+    return buf;
+}
+
+// ---------- 单日数据解析 ----------
+
+static const char* parse_one_day(const char *pos,
+    char *text, size_t text_sz,
+    char *fxdate, size_t fxdate_sz,
+    int *tmax, int *tmin,
+    char *wdir, size_t wdir_sz,
+    char *wscale, size_t wscale_sz,
+    char *sunrise, size_t sunrise_sz)
+{
+    if (!pos || pos[0] == '\0') return NULL;
+
+    const char *fxd_key = strstr(pos, "\"fxDate\"");
+    if (!fxd_key) return NULL;
+
+    const char *next = strstr(fxd_key + 1, "\"fxDate\"");
+
+    // fxDate
+    const char *p = strchr(fxd_key, ':');
+    if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
+        const char *start = p; const char *end = strchr(p, '"');
+        if (end && end > start) { size_t len = end - start;
+            if (len >= fxdate_sz) len = fxdate_sz - 1;
+            memcpy(fxdate, start, len); fxdate[len] = '\0'; }
+    }
+
+    // textDay
+    parse_str(fxd_key, "\"textDay\"", text, text_sz);
+    if (text[0] == '\0') parse_str(fxd_key, "\"text\"", text, text_sz);
+
+    // temp
+    parseInt(fxd_key, "\"tempMax\"", tmax);
+    parseInt(fxd_key, "\"tempMin\"", tmin);
+
+    // windDir
+    if (wdir_sz > 0 && wdir) wdir[0] = '\0';
+    parse_str(fxd_key, "\"windDirDay\"", wdir, wdir_sz);
+    if (wdir[0] == '\0') parse_str(fxd_key, "\"windDir\"", wdir, wdir_sz);
+
+    // windScale (字符串或数值)
+    if (wscale_sz > 0 && wscale) wscale[0] = '\0';
+    parse_wind_scale(fxd_key, "\"windScaleDay\"", wscale, wscale_sz);
+    if (wscale[0] == '\0') parse_wind_scale(fxd_key, "\"windScale\"", wscale, wscale_sz);
+
+    // sunrise
+    if (sunrise_sz > 0 && sunrise) sunrise[0] = '\0';
+    parse_str(fxd_key, "\"sunrise\"", sunrise, sunrise_sz);
+
+    return next;
+}
+
+// ---------- JSON解析入口 ----------
+
 static bool parse_weather_json(const char *buf) {
     if (!buf || buf[0] == '\0') return false;
     const char *code_str = strstr(buf, "\"code\"");
@@ -84,108 +212,38 @@ static bool parse_weather_json(const char *buf) {
     if (code_val[0] != '2' || code_val[1] != '0' || code_val[2] != '0') {
         ESP_LOGW(TAG, "API code not 200: %.3s", code_val); return false; }
 
-    const char *fxd_key = strstr(buf, "\"fxDate\"");
-    if (fxd_key) {
-        const char *p = strchr(fxd_key, ':');
-        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            const char *start = p; const char *end = strchr(p, '"');
-            if (end && end > start) { size_t len = end - start;
-                if (len >= sizeof(s_weather_fxdate)) len = sizeof(s_weather_fxdate) - 1;
-                memcpy(s_weather_fxdate, start, len); s_weather_fxdate[len] = '\0'; } } }
+    // 解析第一天
+    const char *next = parse_one_day(buf,
+        s_weather_text, sizeof(s_weather_text),
+        s_weather_fxdate, sizeof(s_weather_fxdate),
+        &s_weather_temp_max, &s_weather_temp_min,
+        s_weather_wind_dir, sizeof(s_weather_wind_dir),
+        s_weather_wind_scale, sizeof(s_weather_wind_scale),
+        s_weather_sunrise, sizeof(s_weather_sunrise));
 
-    const char *text_key = strstr(buf, "\"textDay\"");
-    if (!text_key) text_key = strstr(buf, "\"text\"");
-    if (text_key) {
-        const char *p = strchr(text_key, ':');
-        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            const char *start = p; const char *end = strchr(p, '"');
-            if (end && end > start) { size_t len = end - start;
-                if (len >= sizeof(s_weather_text)) len = sizeof(s_weather_text) - 1;
-                memcpy(s_weather_text, start, len); s_weather_text[len] = '\0'; } } }
-
-    const char *icon_key = strstr(buf, "\"iconDay\"");
-    if (!icon_key) icon_key = strstr(buf, "\"icon\"");
-    if (icon_key) {
-        const char *p = strchr(icon_key, ':');
-        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            const char *start = p; const char *end = strchr(p, '"');
-            if (end && end > start) { size_t len = end - start;
-                if (len >= sizeof(s_weather_icon)) len = sizeof(s_weather_icon) - 1;
-                memcpy(s_weather_icon, start, len); s_weather_icon[len] = '\0'; } } }
-
-    const char *tmax_key = strstr(buf, "\"tempMax\"");
-    if (tmax_key) {
-        const char *p = strchr(tmax_key, ':');
-        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            if (*p >= '0' && *p <= '9') { s_weather_temp_max = 0; bool neg = false;
-                if (*p == '-') { neg = true; p++; }
-                while (*p >= '0' && *p <= '9') { s_weather_temp_max = s_weather_temp_max * 10 + (*p - '0'); p++; }
-                if (neg) s_weather_temp_max = -s_weather_temp_max; } } }
-
-    const char *tmin_key = strstr(buf, "\"tempMin\"");
-    if (tmin_key) {
-        const char *p = strchr(tmin_key, ':');
-        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            if (*p >= '0' && *p <= '9') { s_weather_temp_min = 0; bool neg = false;
-                if (*p == '-') { neg = true; p++; }
-                while (*p >= '0' && *p <= '9') { s_weather_temp_min = s_weather_temp_min * 10 + (*p - '0'); p++; }
-                if (neg) s_weather_temp_min = -s_weather_temp_min; } } }
-
-    const char *wdir_key = strstr(buf, "\"windDirDay\"");
-    if (wdir_key) {
-        const char *p = strchr(wdir_key, ':');
-        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            const char *start = p; const char *end = strchr(p, '"');
-            if (end && end > start) { size_t len = end - start;
-                if (len >= sizeof(s_weather_wind_dir)) len = sizeof(s_weather_wind_dir) - 1;
-                memcpy(s_weather_wind_dir, start, len); s_weather_wind_dir[len] = '\0'; } } }
-
-    const char *wsc_key = strstr(buf, "\"windScaleDay\"");
-    if (!wsc_key) wsc_key = strstr(buf, "\"windScale\"");
-    if (wsc_key) {
-        const char *p = strchr(wsc_key, ':');
-        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            const char *start = p; const char *end = strchr(p, '"');
-            if (end && end > start) { size_t len = end - start;
-                if (len >= sizeof(s_weather_wind_scale)) len = sizeof(s_weather_wind_scale) - 1;
-                memcpy(s_weather_wind_scale, start, len); s_weather_wind_scale[len] = '\0'; }
-            else {
-                // windScale may be numeric (no quotes), read until comma/brace/space
-                const char *nend = p;
-                while (*nend >= '0' && *nend <= '9') nend++;
-                if (nend > p) { size_t len = nend - p;
-                    if (len >= sizeof(s_weather_wind_scale)) len = sizeof(s_weather_wind_scale) - 1;
-                    memcpy(s_weather_wind_scale, p, len); s_weather_wind_scale[len] = '\0'; } } } }
-
-    const char *sun_key = strstr(buf, "\"sunrise\"");
-    if (sun_key) {
-        const char *p = strchr(sun_key, ':');
-        if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            const char *start = p; const char *end = strchr(p, '"');
-            if (end && end > start) { size_t len = end - start;
-                if (len >= sizeof(s_weather_sunrise)) len = sizeof(s_weather_sunrise) - 1;
-                memcpy(s_weather_sunrise, start, len); s_weather_sunrise[len] = '\0'; } } }
+    // 解析第二天
+    if (next) {
+        parse_one_day(next,
+            s_weather_text_tmrw, sizeof(s_weather_text_tmrw),
+            s_weather_fxdate_tmrw, sizeof(s_weather_fxdate_tmrw),
+            &s_weather_temp_max_tmrw, &s_weather_temp_min_tmrw,
+            s_weather_wind_dir_tmrw, sizeof(s_weather_wind_dir_tmrw),
+            s_weather_wind_scale_tmrw, sizeof(s_weather_wind_scale_tmrw),
+            s_weather_sunrise_tmrw, sizeof(s_weather_sunrise_tmrw));
+    }
 
     if (s_weather_text[0] == '\0' && s_weather_temp_max == 0) {
         ESP_LOGW(TAG, "weather parse: no valid data"); return false; }
-    ESP_LOGI(TAG, "weather: %s %s, %d~%dC, %s %s, sunrise=%s",
+    ESP_LOGI(TAG, "day1: %s %s, %d~%dC, %s %s, sunrise=%s",
              s_weather_fxdate, s_weather_text,
              s_weather_temp_min, s_weather_temp_max,
              s_weather_wind_dir, s_weather_wind_scale, s_weather_sunrise);
+    if (s_weather_fxdate_tmrw[0])
+        ESP_LOGI(TAG, "day2: %s %s, %d~%dC, %s %s, sunrise=%s",
+                 s_weather_fxdate_tmrw, s_weather_text_tmrw,
+                 s_weather_temp_min_tmrw, s_weather_temp_max_tmrw,
+                 s_weather_wind_dir_tmrw, s_weather_wind_scale_tmrw, s_weather_sunrise_tmrw);
     return true;
-}
-
-// ... (icon_to_symbol, http handlers - same as before) ...
-static const char* weather_icon_to_symbol(const char *icon) {
-    if (!icon) return LV_SYMBOL_HOME;
-    int code = atoi(icon);
-    if (code == 100 || code == 102 || code == 103) return LV_SYMBOL_OK;
-    if (code == 101 || code == 104) return LV_SYMBOL_LOOP;
-    if (code >= 300 && code <= 399) return LV_SYMBOL_DOWN;
-    if (code >= 400 && code <= 499) return LV_SYMBOL_SHUFFLE;
-    if (code >= 500 && code <= 515) return LV_SYMBOL_WARNING;
-    if (code >= 800 && code <= 804) return LV_SYMBOL_LOOP;
-    return LV_SYMBOL_HOME;
 }
 
 static esp_err_t http_event_handler(esp_http_client_event_t *evt) {
@@ -240,7 +298,6 @@ bool weather_need_update(void) {
 void weather_force_update(void) { s_weather_last_ymd = 0; s_weather_update_attempts = 0; }
 const char* weather_get_text(void) { return s_weather_text; }
 bool weather_is_valid(void) { return s_weather_valid; }
-const char* weather_get_icon_symbol(void) { return weather_icon_to_symbol(s_weather_icon); }
 
 void weather_poll_once(void) {
     int ymd = weather_calc_ymd();
@@ -258,18 +315,6 @@ void weather_poll_once(void) {
         ESP_LOGI(TAG, "waiting for time sync...");
         if (hw_time_wait_for_sync(60000)) ESP_LOGI(TAG, "time synced");
         else ESP_LOGW(TAG, "time sync timeout"); }
-
-#if WEATHER_DEBUG_DNS
-    for (int i = 0; i < DNS_MAX_SERVERS; i++) {
-        const ip_addr_t *dns = dns_getserver(i);
-        if (dns && !ip_addr_isany(dns)) { char s[IPADDR_STRLEN_MAX]; ipaddr_ntoa_r(dns, s, sizeof(s)); ESP_LOGI(TAG, "DNS %d: %s", i, s); } }
-    struct addrinfo hints = {0}, *ai = NULL;
-    hints.ai_family = AF_INET; hints.ai_socktype = SOCK_STREAM;
-    if (getaddrinfo(WEATHER_API_HOST, NULL, &hints, &ai) == 0 && ai) {
-        for (struct addrinfo *p = ai; p; p = p->ai_next) {
-            if (p->ai_family == AF_INET) { char s[INET_ADDRSTRLEN]; inet_ntoa_r(((struct sockaddr_in*)p->ai_addr)->sin_addr, s, sizeof(s)); ESP_LOGI(TAG, "DNS result: %s", s); } }
-        freeaddrinfo(ai); }
-#endif
 
     char query[256];
     snprintf(query, sizeof(query), "location=%s&key=%s", WEATHER_LOCATION, WEATHER_API_KEY);
@@ -311,52 +356,39 @@ void weather_poll_once(void) {
     free(response_buffer);
 }
 
-static const char* translate_weather(const char* cn) {
-    if (!cn || cn[0]=='\0') return "--";
-    if (strcmp(cn, "晴")==0 || strcmp(cn, "晴间多云")==0) return "Sunny";
-    if (strcmp(cn, "多云")==0 || strcmp(cn, "少云")==0) return "Cloudy";
-    if (strcmp(cn, "阴")==0) return "Overcast";
-    if (strcmp(cn, "阵雨")==0 || strcmp(cn, "小雨")==0) return "Light Rain";
-    if (strcmp(cn, "中雨")==0) return "Mod Rain";
-    if (strcmp(cn, "大雨")==0 || strcmp(cn, "暴雨")==0) return "Heavy Rain";
-    if (strcmp(cn, "雷阵雨")==0) return "T-Storm";
-    if (strcmp(cn, "小雪")==0) return "Light Snow";
-    if (strcmp(cn, "中雪")==0) return "Mod Snow";
-    if (strcmp(cn, "大雪")==0) return "Heavy Snow";
-    if (strcmp(cn, "雾")==0 || strcmp(cn, "霾")==0) return "Foggy";
-    return cn;
-}
-
-static const char* translate_wind(const char* cn) {
-    if (!cn) return "";
-    if (strcmp(cn, "北风")==0) return "N";
-    if (strcmp(cn, "南风")==0) return "S";
-    if (strcmp(cn, "西风")==0) return "W";
-    if (strcmp(cn, "东风")==0) return "E";
-    if (strcmp(cn, "东北风")==0) return "NE";
-    if (strcmp(cn, "西北风")==0) return "NW";
-    if (strcmp(cn, "东南风")==0) return "SE";
-    if (strcmp(cn, "西南风")==0) return "SW";
-    if (strcmp(cn, "北")==0) return "N";
-    if (strcmp(cn, "南")==0) return "S";
-    if (strcmp(cn, "西")==0) return "W";
-    if (strcmp(cn, "东")==0) return "E";
-    return cn;
+static void fmt_date_short(char *out, size_t sz, const char *fxdate) {
+    if (!fxdate || strlen(fxdate) < 10) { out[0] = '\0'; return; }
+    out[0] = fxdate[5]; out[1] = fxdate[6];
+    out[2] = '-'; out[3] = fxdate[8]; out[4] = fxdate[9]; out[5] = '\0';
 }
 
 void weather_apply_to_ui(void) {
     if (!s_weather_valid) { ESP_LOGW(TAG, "no valid weather data"); return; }
-    char date_str[8] = "";
-    if (s_weather_fxdate[0] && strlen(s_weather_fxdate) >= 10) {
-        date_str[0] = s_weather_fxdate[5]; date_str[1] = s_weather_fxdate[6];
-        date_str[2] = '-'; date_str[3] = s_weather_fxdate[8]; date_str[4] = s_weather_fxdate[9]; date_str[5] = '\0'; }
-    char weather_line[48];
-    if (date_str[0]) snprintf(weather_line, sizeof(weather_line), "%s %s", date_str, s_weather_text);
-    else snprintf(weather_line, sizeof(weather_line), "%s", s_weather_text);
-    char temp_hi_lo[32]; snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%d", s_weather_temp_min, s_weather_temp_max);
-    char info_str[64]; snprintf(info_str, sizeof(info_str), "%s %s 日出%s", s_weather_wind_dir, s_weather_wind_scale, s_weather_sunrise);
-    lvgl_ui_set_weather(weather_line, temp_hi_lo, info_str);
-    ESP_LOGI(TAG, "UI: %s, %s, %s", weather_line, temp_hi_lo, info_str);
+
+    char date1[8] = "";
+    fmt_date_short(date1, sizeof(date1), s_weather_fxdate);
+    char weather_line[96];
+    if (date1[0])
+        snprintf(weather_line, sizeof(weather_line), "%s %s %s %s",
+                 date1, s_weather_text, s_weather_wind_dir, s_weather_wind_scale);
+    else
+        snprintf(weather_line, sizeof(weather_line), "%s %s %s",
+                 s_weather_text, s_weather_wind_dir, s_weather_wind_scale);
+    char temp_hi_lo[32];
+    snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%d", s_weather_temp_min, s_weather_temp_max);
+
+    char date2[8] = "";
+    fmt_date_short(date2, sizeof(date2), s_weather_fxdate_tmrw);
+    char weather_line2[48];
+    if (date2[0] && s_weather_text_tmrw[0])
+        snprintf(weather_line2, sizeof(weather_line2), "%s %s %d~%d℃",
+                 date2, s_weather_text_tmrw, s_weather_temp_min_tmrw, s_weather_temp_max_tmrw);
+    else
+        weather_line2[0] = '\0';
+
+    lvgl_ui_set_weather(weather_line, temp_hi_lo, weather_line2);
+    ESP_LOGI(TAG, "UI day1: %s, %s", weather_line, temp_hi_lo);
+    if (weather_line2[0]) ESP_LOGI(TAG, "UI day2: %s", weather_line2);
 }
 
 static SemaphoreHandle_t s_weather_done = NULL;

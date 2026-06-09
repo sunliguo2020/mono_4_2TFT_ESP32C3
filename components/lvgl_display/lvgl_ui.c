@@ -206,29 +206,29 @@ static void ui_task(void *arg) {
         }
         break;
       case UI_MSG_WEATHER:
-        // ???????
+        // 第一行：今天日期+天气+风向风力（合并显示）
         if (guider_ui.screen_main_label_5) {
           lv_label_set_text(guider_ui.screen_main_label_5, msg.data.weather.text);
         }
-        // ???????
+        // 第二行：温度数字（SMG_40 数码管字体）
         if (guider_ui.screen_main_label_20) {
           lv_label_set_text(guider_ui.screen_main_label_20, msg.data.weather.temp);
         }
-        // screen_main_label_18 - ℃符号（使用 weather_20 字体）
+        // screen_main_label_18 - ℃符号
         if (guider_ui.screen_main_label_18) {
           lv_label_set_text(guider_ui.screen_main_label_18, "℃");
         }
-        // ???????
+        // screen_main_label_2 - 第二天天气（日期+天气+温度）
+        if (guider_ui.screen_main_label_2) {
+          lv_label_set_text(guider_ui.screen_main_label_2, msg.data.weather.humi);
+        }
+        // 隐藏不再使用的旧标签
         if (guider_ui.screen_main_label_run_hour) {
-          lv_label_set_text(guider_ui.screen_main_label_run_hour, msg.data.weather.humi);
+          lv_obj_add_flag(guider_ui.screen_main_label_run_hour, LV_OBJ_FLAG_HIDDEN);
         }
         if (guider_ui.screen_main_label_run_min) {
-          lv_label_set_text(guider_ui.screen_main_label_run_min, "");
+          lv_obj_add_flag(guider_ui.screen_main_label_run_min, LV_OBJ_FLAG_HIDDEN);
         }
-        if (guider_ui.screen_main_label_2) {
-          lv_label_set_text(guider_ui.screen_main_label_2, "");
-        }
-        // 隐藏旧天气标签（数据已分行显示在其他标签上）
         if (guider_ui.screen_main_label_weather) {
           lv_obj_add_flag(guider_ui.screen_main_label_weather, LV_OBJ_FLAG_HIDDEN);
         }
