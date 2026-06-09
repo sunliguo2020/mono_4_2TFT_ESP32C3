@@ -1,5 +1,56 @@
 # 项目变更日志
 
+## [2026-06-09] 天气区域汉字显示 + 数码管温度 + 今明两天天气
+
+### 1. 天气区域显示中文
+
+**涉及文件**：`components/GUI/generated/guider_fonts/lv_font_weather_20.c`、`components/GUI/generated/guider_fonts/lv_font_weather_24.c`、`components/GUI/generated/setup_scr_screen_main_bottom.c`、`components/weather/weather.c`、`components/lvgl_display/lvgl_ui.c`
+
+**修改内容**：
+- 新增 `lv_font_weather_20` 天气中文字体（使用系统 simhei.ttf 生成，包含：晴多云阴小雨中大雨暴雨雷阵雨雪雾霾少间北南东西风转℃日出）
+- 新增 `lv_font_weather_24` 加大版中文字体（用于℃符号显示）
+- 天气标签字体从 `lv_font_SourceHanSansSCBold_20`（稀疏字体，仅含66个汉字）改为 `lv_font_weather_20`
+- `weather_apply_to_ui()` 移除 `translate_weather()` / `translate_wind()` 英文翻译，直接使用 API 返回的中文原文
+- 温度数字改用 `lv_font_SMG_40`（40px LED数码管字体），居中显示
+- ℃符号用独立标签 `screen_main_label_18` 以 24px 字体显示
+
+### 2. 风力解析修复
+
+**涉及文件**：`components/weather/weather.c`
+
+**修改内容**：
+- API `windScale` 字段可能是数值类型（如 `"windScaleDay": 3`）而非字符串，原解析代码仅处理字符串
+- 新增 `parse_wind_scale()` 函数同时支持字符串和数值两种格式
+- `ui_msg_t` 中 `weather.humi` 字段从 `char[16]` 扩大到 `char[32]`，解决 UTF-8 中文截断
+
+### 3. 今明两天天气同时显示
+
+**涉及文件**：`components/weather/weather.c`、`components/GUI/generated/setup_scr_screen_main_bottom.c`、`components/lvgl_display/lvgl_ui.c`
+
+**修改内容**：
+- `parse_weather_json()` 新增 `parse_one_day()` 通用解析函数，通过查找第二个 `"fxDate"` 定位第二天数据
+- 新增 `s_weather_*_tmrw` 变量组存储第二天（明天）天气
+- HTTP 缓冲区从 4096 扩大到 8192，解压缓冲区固定为 8192，确保完整 JSON 不被截断
+- 新增 `screen_main_label_2` 标签在底部区域第三行显示第二天天气
+
+### 4. 日出信息中文显示
+
+**涉及文件**：`components/weather/weather.c`
+
+**修改内容**：
+- 第三行格式从 `R:04:46` 改为 `日出04:46`
+- `R` 原为 "Rise"（日出）缩写，现直接显示中文
+
+### 5. 天气每30分钟自动刷新
+
+**涉及文件**：`main/main.c`
+
+**修改内容**：
+- 主循环新增 `WEATHER_INTERVAL_MS = 30 * 60 * 1000` 定时器
+- 每30分钟调用 `weather_force_update()` + `weather_poll_once()` + `weather_apply_to_ui()` 刷新显示
+
+---
+
 ## [2026-06-08] 和风天气获取与显示 + 温湿度显示修复 + 屏幕布局优化
 
 ### 1. 和风天气 API 集成
