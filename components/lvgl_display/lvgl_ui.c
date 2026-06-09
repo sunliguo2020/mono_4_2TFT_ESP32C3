@@ -56,7 +56,7 @@ typedef struct {
     struct {
       char text[16];
       char temp[16];
-      char humi[16];
+      char humi[32];
     } weather;
   } data;
 } ui_msg_t;

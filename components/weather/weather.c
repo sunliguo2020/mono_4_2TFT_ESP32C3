@@ -141,13 +141,21 @@ static bool parse_weather_json(const char *buf) {
                 memcpy(s_weather_wind_dir, start, len); s_weather_wind_dir[len] = '\0'; } } }
 
     const char *wsc_key = strstr(buf, "\"windScaleDay\"");
+    if (!wsc_key) wsc_key = strstr(buf, "\"windScale\"");
     if (wsc_key) {
         const char *p = strchr(wsc_key, ':');
         if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
             const char *start = p; const char *end = strchr(p, '"');
             if (end && end > start) { size_t len = end - start;
                 if (len >= sizeof(s_weather_wind_scale)) len = sizeof(s_weather_wind_scale) - 1;
-                memcpy(s_weather_wind_scale, start, len); s_weather_wind_scale[len] = '\0'; } } }
+                memcpy(s_weather_wind_scale, start, len); s_weather_wind_scale[len] = '\0'; }
+            else {
+                // windScale may be numeric (no quotes), read until comma/brace/space
+                const char *nend = p;
+                while (*nend >= '0' && *nend <= '9') nend++;
+                if (nend > p) { size_t len = nend - p;
+                    if (len >= sizeof(s_weather_wind_scale)) len = sizeof(s_weather_wind_scale) - 1;
+                    memcpy(s_weather_wind_scale, p, len); s_weather_wind_scale[len] = '\0'; } } } }
 
     const char *sun_key = strstr(buf, "\"sunrise\"");
     if (sun_key) {
@@ -346,7 +354,7 @@ void weather_apply_to_ui(void) {
     if (date_str[0]) snprintf(weather_line, sizeof(weather_line), "%s %s", date_str, s_weather_text);
     else snprintf(weather_line, sizeof(weather_line), "%s", s_weather_text);
     char temp_hi_lo[32]; snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%d", s_weather_temp_min, s_weather_temp_max);
-    char info_str[64]; snprintf(info_str, sizeof(info_str), "%s %s R:%s", s_weather_wind_dir, s_weather_wind_scale, s_weather_sunrise);
+    char info_str[64]; snprintf(info_str, sizeof(info_str), "%s %s 日出%s", s_weather_wind_dir, s_weather_wind_scale, s_weather_sunrise);
     lvgl_ui_set_weather(weather_line, temp_hi_lo, info_str);
     ESP_LOGI(TAG, "UI: %s, %s, %s", weather_line, temp_hi_lo, info_str);
 }
