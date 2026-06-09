@@ -102,15 +102,15 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // screen_main_label_2 - 第二天天气（第三行：日期+天气+温度）
+    // screen_main_label_2 - 第二天天气（第三行：日期+天气+温度，24px字体放大）
     ui->screen_main_label_2 = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_2, 0, 98);
-    lv_obj_set_size(ui->screen_main_label_2, 290, 28);
+    lv_obj_set_pos(ui->screen_main_label_2, 0, 95);
+    lv_obj_set_size(ui->screen_main_label_2, 290, 40);
     lv_label_set_text(ui->screen_main_label_2, "");
     lv_label_set_long_mode(ui->screen_main_label_2, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_2, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_2, &lv_font_weather_20, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_2, &lv_font_weather_24, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_2, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_2, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -138,10 +138,5 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // screen_main_label_run_hour - 旧标签（不再使用，隐藏）
-    ui->screen_main_label_run_hour = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_run_hour, 0, 0);
-    lv_obj_set_size(ui->screen_main_label_run_hour, 1, 1);
-    lv_label_set_text(ui->screen_main_label_run_hour, "");
-    lv_obj_add_flag(ui->screen_main_label_run_hour, LV_OBJ_FLAG_HIDDEN);
+    // screen_main_label_run_hour - 不再使用
 }
