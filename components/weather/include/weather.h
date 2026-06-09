@@ -39,6 +39,16 @@ void weather_apply_to_ui(void);
 // 获取天气图标符号
 const char* weather_get_icon_symbol(void);
 
+// AT 指令需要的数据访问函数
+int weather_get_temp_min(void);
+int weather_get_temp_max(void);
+const char* weather_get_wind_dir(void);
+const char* weather_get_wind_scale(void);
+const char* weather_get_sunrise(void);
+const char* weather_get_text_tmrw(void);
+int weather_get_temp_min_tmrw(void);
+int weather_get_temp_max_tmrw(void);
+
 #ifdef __cplusplus
 }
 #endif

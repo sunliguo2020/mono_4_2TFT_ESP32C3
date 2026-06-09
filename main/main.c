@@ -21,6 +21,7 @@
 #include "nvs_flash.h"
 #include "esp_wifi.h"
 #include "weather.h"
+#include "at_cmd.h"
 
 #define WAKE_BTN_GPIO 5
 #define OPT3001_INT_TEST 0
@@ -290,6 +291,9 @@ void app_main(void)
     aht30_y_read_update_ui();
     opt3001_y_read_update_ui();
     battery_y_read_update_ui();
+
+    // 初始化 AT 指令 UART 串口
+    at_cmd_init();
 
     // 屏幕显示完毕后再启动 sleep 任务
     sleep_start_light();

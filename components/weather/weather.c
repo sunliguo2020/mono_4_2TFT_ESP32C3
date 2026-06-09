@@ -359,6 +359,15 @@ void weather_apply_to_ui(void) {
     if (weather_line2[0]) ESP_LOGI(TAG, "UI day2: %s", weather_line2);
 }
 
+int weather_get_temp_min(void) { return s_weather_temp_min; }
+int weather_get_temp_max(void) { return s_weather_temp_max; }
+const char* weather_get_wind_dir(void) { return s_weather_wind_dir; }
+const char* weather_get_wind_scale(void) { return s_weather_wind_scale; }
+const char* weather_get_sunrise(void) { return s_weather_sunrise; }
+const char* weather_get_text_tmrw(void) { return s_weather_text_tmrw; }
+int weather_get_temp_min_tmrw(void) { return s_weather_temp_min_tmrw; }
+int weather_get_temp_max_tmrw(void) { return s_weather_temp_max_tmrw; }
+
 static SemaphoreHandle_t s_weather_done = NULL;
 static void weather_poll_task(void *arg) {
     (void)arg; weather_poll_once(); xSemaphoreGive(s_weather_done); vTaskDelete(NULL); }
