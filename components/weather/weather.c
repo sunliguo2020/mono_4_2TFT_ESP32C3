@@ -34,7 +34,7 @@
 #define WEATHER_API_HOST   "mg7fc3p9rj.re.qweatherapi.com"
 #define WEATHER_API_PATH   "/v7/weather/3d"
 
-#define MAX_HTTP_OUTPUT_BUFFER 4096
+#define MAX_HTTP_OUTPUT_BUFFER 8192
 #define HTTPS_TIMEOUT_MS 30000
 #define HTTP_CLIENT_RX_BUFFER 1024
 #define HTTP_CLIENT_TX_BUFFER 512
@@ -85,7 +85,6 @@ static int weather_calc_ymd(void) {
 
 // ---------- JSON字段解析辅助函数 ----------
 
-// 查找 buf 中的 field，读取字符串值到 out
 static const char* parse_str(const char *buf, const char *field, char *out, size_t out_sz) {
     if (!buf) return NULL;
     const char *key = strstr(buf, field);
@@ -103,7 +102,6 @@ static const char* parse_str(const char *buf, const char *field, char *out, size
     return buf;
 }
 
-// 查找 buf 中的 field，读取整数值到 out
 static const char* parseInt(const char *buf, const char *field, int *out) {
     if (!buf) return NULL;
     const char *key = strstr(buf, field);
@@ -120,7 +118,6 @@ static const char* parseInt(const char *buf, const char *field, int *out) {
     return p;
 }
 
-// 查找 windScale（字符串或数值类型）
 static const char* parse_wind_scale(const char *buf, const char *field, char *out, size_t out_sz) {
     if (!buf) return buf;
     const char *key = strstr(buf, field);
@@ -128,8 +125,6 @@ static const char* parse_wind_scale(const char *buf, const char *field, char *ou
     const char *p = strchr(key, ':');
     if (!p) return buf;
     p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-
-    // 尝试字符串值
     const char *end = strchr(p, '"');
     if (end && end > p) {
         size_t len = end - p;
@@ -137,7 +132,6 @@ static const char* parse_wind_scale(const char *buf, const char *field, char *ou
         memcpy(out, p, len); out[len] = '\0';
         return end + 1;
     }
-    // 尝试数值
     const char *nend = p;
     while (*nend >= '0' && *nend <= '9') nend++;
     if (nend > p) {
@@ -159,13 +153,10 @@ static const char* parse_one_day(const char *pos,
     char *sunrise, size_t sunrise_sz)
 {
     if (!pos || pos[0] == '\0') return NULL;
-
     const char *fxd_key = strstr(pos, "\"fxDate\"");
     if (!fxd_key) return NULL;
-
     const char *next = strstr(fxd_key + 1, "\"fxDate\"");
 
-    // fxDate
     const char *p = strchr(fxd_key, ':');
     if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
         const char *start = p; const char *end = strchr(p, '"');
@@ -173,29 +164,18 @@ static const char* parse_one_day(const char *pos,
             if (len >= fxdate_sz) len = fxdate_sz - 1;
             memcpy(fxdate, start, len); fxdate[len] = '\0'; }
     }
-
-    // textDay
     parse_str(fxd_key, "\"textDay\"", text, text_sz);
     if (text[0] == '\0') parse_str(fxd_key, "\"text\"", text, text_sz);
-
-    // temp
     parseInt(fxd_key, "\"tempMax\"", tmax);
     parseInt(fxd_key, "\"tempMin\"", tmin);
-
-    // windDir
     if (wdir_sz > 0 && wdir) wdir[0] = '\0';
     parse_str(fxd_key, "\"windDirDay\"", wdir, wdir_sz);
     if (wdir[0] == '\0') parse_str(fxd_key, "\"windDir\"", wdir, wdir_sz);
-
-    // windScale (字符串或数值)
     if (wscale_sz > 0 && wscale) wscale[0] = '\0';
     parse_wind_scale(fxd_key, "\"windScaleDay\"", wscale, wscale_sz);
     if (wscale[0] == '\0') parse_wind_scale(fxd_key, "\"windScale\"", wscale, wscale_sz);
-
-    // sunrise
     if (sunrise_sz > 0 && sunrise) sunrise[0] = '\0';
     parse_str(fxd_key, "\"sunrise\"", sunrise, sunrise_sz);
-
     return next;
 }
 
@@ -203,16 +183,7 @@ static const char* parse_one_day(const char *pos,
 
 static bool parse_weather_json(const char *buf) {
     if (!buf || buf[0] == '\0') return false;
-    const char *code_str = strstr(buf, "\"code\"");
-    if (!code_str) { ESP_LOGW(TAG, "no code field"); return false; }
-    const char *code_val = strchr(code_str, ':');
-    if (!code_val) return false;
-    code_val++;
-    while (*code_val == ' ' || *code_val == '\t' || *code_val == '"') code_val++;
-    if (code_val[0] != '2' || code_val[1] != '0' || code_val[2] != '0') {
-        ESP_LOGW(TAG, "API code not 200: %.3s", code_val); return false; }
-
-    // 解析第一天
+    // 跳过 code 检查
     const char *next = parse_one_day(buf,
         s_weather_text, sizeof(s_weather_text),
         s_weather_fxdate, sizeof(s_weather_fxdate),
@@ -220,8 +191,6 @@ static bool parse_weather_json(const char *buf) {
         s_weather_wind_dir, sizeof(s_weather_wind_dir),
         s_weather_wind_scale, sizeof(s_weather_wind_scale),
         s_weather_sunrise, sizeof(s_weather_sunrise));
-
-    // 解析第二天
     if (next) {
         parse_one_day(next,
             s_weather_text_tmrw, sizeof(s_weather_text_tmrw),
@@ -231,7 +200,6 @@ static bool parse_weather_json(const char *buf) {
             s_weather_wind_scale_tmrw, sizeof(s_weather_wind_scale_tmrw),
             s_weather_sunrise_tmrw, sizeof(s_weather_sunrise_tmrw));
     }
-
     if (s_weather_text[0] == '\0' && s_weather_temp_max == 0) {
         ESP_LOGW(TAG, "weather parse: no valid data"); return false; }
     ESP_LOGI(TAG, "day1: %s %s, %d~%dC, %s %s, sunrise=%s",
@@ -338,7 +306,7 @@ void weather_poll_once(void) {
         if (flg & 0x10) { while (offset < resp.len && response_buffer[offset]) offset++; offset++; }
         if ((flg & 0x02) && offset + 2 <= resp.len) offset += 2;
         if (offset < resp.len) {
-            size_t out_cap = (resp.len - offset) * 4; if (out_cap < 512) out_cap = 512;
+            size_t out_cap = 8192;  // 足够容纳完整 JSON
             char *decomp_buf = (char *)calloc(1, out_cap + 1);
             if (decomp_buf) {
                 tinfl_decompressor inflator; tinfl_init(&inflator);

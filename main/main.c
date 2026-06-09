@@ -305,21 +305,38 @@ void app_main(void)
     return;
 #endif
 
-    // 温湿度定时读取间隔
+    // 定时任务间隔
     TickType_t last_temp_humi_tick = xTaskGetTickCount();
 #define TEMP_HUMI_INTERVAL_MS 3000  // 每 3 秒读取一次
+
+    TickType_t last_weather_tick = xTaskGetTickCount();
+#define WEATHER_INTERVAL_MS (30 * 60 * 1000)  // 每 30 分钟更新天气
 
     // 主循环：非阻塞地处理状态机
     while (1) {
         // 运行状态机（非阻塞）
         state_machine_run();
 
-        // 定时读取温湿度传感器并更新 UI
         TickType_t now = xTaskGetTickCount();
+
+        // 定时读取温湿度传感器并更新 UI
         if ((now - last_temp_humi_tick) >= pdMS_TO_TICKS(TEMP_HUMI_INTERVAL_MS)) {
             aht30_y_read_update_ui();
             opt3001_y_read_update_ui();
             last_temp_humi_tick = now;
+        }
+
+        // 定时更新天气（每 30 分钟）
+        if ((now - last_weather_tick) >= pdMS_TO_TICKS(WEATHER_INTERVAL_MS)) {
+            ESP_LOGI(TAG, "weather refresh (30 min interval)...");
+            weather_force_update();  // 强制刷新缓存
+            if (wifi_is_connected()) {
+                weather_poll_once();  // 获取新数据（非阻塞）
+                if (weather_is_valid()) {
+                    weather_apply_to_ui();  // 更新 UI
+                }
+            }
+            last_weather_tick = xTaskGetTickCount();
         }
 
         // 短暂延时，让其他任务（如 LVGL）有机会运行
