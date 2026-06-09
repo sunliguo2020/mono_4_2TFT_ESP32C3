@@ -50,9 +50,9 @@ static char s_weather_icon[8] = "";
 static char s_weather_fxdate[16] = "";
 static int s_weather_temp_max = 0;
 static int s_weather_temp_min = 0;
-static int s_weather_humidity = 0;
 static char s_weather_wind_dir[32] = "";
 static char s_weather_wind_scale[16] = "";
+static char s_weather_sunrise[8] = "";
 static bool s_weather_valid = false;
 static int s_weather_last_ymd = 0;
 static int s_weather_update_attempts = 0;
@@ -84,7 +84,6 @@ static bool parse_weather_json(const char *buf) {
     if (code_val[0] != '2' || code_val[1] != '0' || code_val[2] != '0') {
         ESP_LOGW(TAG, "API code not 200: %.3s", code_val); return false; }
 
-    // 提取预报日期 fxDate
     const char *fxd_key = strstr(buf, "\"fxDate\"");
     if (fxd_key) {
         const char *p = strchr(fxd_key, ':');
@@ -150,22 +149,25 @@ static bool parse_weather_json(const char *buf) {
                 if (len >= sizeof(s_weather_wind_scale)) len = sizeof(s_weather_wind_scale) - 1;
                 memcpy(s_weather_wind_scale, start, len); s_weather_wind_scale[len] = '\0'; } } }
 
-    const char *humi_key = strstr(buf, "\"humidity\"");
-    if (humi_key) {
-        const char *p = strchr(humi_key, ':');
+    const char *sun_key = strstr(buf, "\"sunrise\"");
+    if (sun_key) {
+        const char *p = strchr(sun_key, ':');
         if (p) { p++; while (*p == ' ' || *p == '\t' || *p == '"') p++;
-            if (*p >= '0' && *p <= '9') { s_weather_humidity = 0;
-                while (*p >= '0' && *p <= '9') { s_weather_humidity = s_weather_humidity * 10 + (*p - '0'); p++; } } } }
+            const char *start = p; const char *end = strchr(p, '"');
+            if (end && end > start) { size_t len = end - start;
+                if (len >= sizeof(s_weather_sunrise)) len = sizeof(s_weather_sunrise) - 1;
+                memcpy(s_weather_sunrise, start, len); s_weather_sunrise[len] = '\0'; } } }
 
     if (s_weather_text[0] == '\0' && s_weather_temp_max == 0) {
         ESP_LOGW(TAG, "weather parse: no valid data"); return false; }
-    ESP_LOGI(TAG, "weather: %s %s, %d~%dC, %s %s, hum=%d%%",
+    ESP_LOGI(TAG, "weather: %s %s, %d~%dC, %s %s, sunrise=%s",
              s_weather_fxdate, s_weather_text,
              s_weather_temp_min, s_weather_temp_max,
-             s_weather_wind_dir, s_weather_wind_scale, s_weather_humidity);
+             s_weather_wind_dir, s_weather_wind_scale, s_weather_sunrise);
     return true;
 }
 
+// ... (icon_to_symbol, http handlers - same as before) ...
 static const char* weather_icon_to_symbol(const char *icon) {
     if (!icon) return LV_SYMBOL_HOME;
     int code = atoi(icon);
@@ -244,7 +246,6 @@ void weather_poll_once(void) {
 
     if (!wifi_wait_connected(pdMS_TO_TICKS(5000))) { ESP_LOGW(TAG, "wifi not connected"); free(response_buffer); return; }
     vTaskDelay(pdMS_TO_TICKS(3000));
-
     if (!hw_time_is_synced()) {
         ESP_LOGI(TAG, "waiting for time sync...");
         if (hw_time_wait_for_sync(60000)) ESP_LOGI(TAG, "time synced");
@@ -270,14 +271,14 @@ void weather_poll_once(void) {
         .crt_bundle_attach = esp_crt_bundle_attach,
         .buffer_size = HTTP_CLIENT_RX_BUFFER, .buffer_size_tx = HTTP_CLIENT_TX_BUFFER, .timeout_ms = HTTPS_TIMEOUT_MS };
 
-    ESP_LOGI(TAG, "HTTPS GET https://%s%s?location=%s&key=...", WEATHER_API_HOST, WEATHER_API_PATH, WEATHER_LOCATION);
+    ESP_LOGI(TAG, "HTTPS GET ...");
     esp_err_t err = http_perform_with_retry(&cfg, "weather");
     if (err != ESP_OK && response_buffer[0] == '\0') { ESP_LOGW(TAG, "request failed"); free(response_buffer); return; }
     if (response_buffer[0] == '\0') { ESP_LOGW(TAG, "empty response"); free(response_buffer); return; }
 
     bool is_gzip = (resp.len >= 2 && (uint8_t)response_buffer[0] == 0x1f && (uint8_t)response_buffer[1] == 0x8b);
     if (is_gzip) {
-        ESP_LOGI(TAG, "gzip compressed (%u bytes), decompressing...", (unsigned)resp.len);
+        ESP_LOGI(TAG, "gzip compressed (%u bytes)", (unsigned)resp.len);
         size_t offset = 10; uint8_t flg = (uint8_t)response_buffer[3];
         if ((flg & 0x04) && offset + 2 <= resp.len) { uint16_t xlen = (uint8_t)response_buffer[offset] | ((uint8_t)response_buffer[offset+1]<<8); offset += 2 + xlen; }
         if (flg & 0x08) { while (offset < resp.len && response_buffer[offset]) offset++; offset++; }
@@ -292,23 +293,16 @@ void weather_poll_once(void) {
                 tinfl_status st = tinfl_decompress(&inflator, (const mz_uint8*)(response_buffer+offset), &in_rem, (mz_uint8*)decomp_buf, (mz_uint8*)decomp_buf, &out_rem, TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
                 if (st == TINFL_STATUS_DONE || st == TINFL_STATUS_HAS_MORE_OUTPUT) {
                     decomp_buf[out_cap - out_rem] = '\0';
-                    ESP_LOGI(TAG, "decompressed: %u -> %u bytes", (unsigned)resp.len, (unsigned)(out_cap - out_rem));
                     free(response_buffer); response_buffer = decomp_buf; resp.buf = decomp_buf; resp.len = out_cap - out_rem; }
-                else { ESP_LOGW(TAG, "decompress failed status=%d", (int)st); free(decomp_buf); } } } }
-    ESP_LOGI(TAG, "weather resp: %s", response_buffer);
+                else { ESP_LOGW(TAG, "decompress failed"); free(decomp_buf); } } } }
+    ESP_LOGI(TAG, "weather resp: %.100s", response_buffer);
 
     if (!parse_weather_json(response_buffer)) { ESP_LOGW(TAG, "parse failed"); free(response_buffer); return; }
-
     s_weather_valid = true;
     if (ymd != 0) s_weather_last_ymd = ymd;
-    ESP_LOGI(TAG, "weather fetched: %s %s, %d~%dC, %s %s, hum=%d%%",
-             s_weather_fxdate, s_weather_text,
-             s_weather_temp_min, s_weather_temp_max,
-             s_weather_wind_dir, s_weather_wind_scale, s_weather_humidity);
     free(response_buffer);
 }
 
-// 简单天气中文转英文
 static const char* translate_weather(const char* cn) {
     if (!cn || cn[0]=='\0') return "--";
     if (strcmp(cn, "晴")==0 || strcmp(cn, "晴间多云")==0) return "Sunny";
@@ -325,7 +319,6 @@ static const char* translate_weather(const char* cn) {
     return cn;
 }
 
-// 风向中文转英文
 static const char* translate_wind(const char* cn) {
     if (!cn) return "";
     if (strcmp(cn, "北风")==0) return "N";
@@ -340,50 +333,27 @@ static const char* translate_wind(const char* cn) {
     if (strcmp(cn, "南")==0) return "S";
     if (strcmp(cn, "西")==0) return "W";
     if (strcmp(cn, "东")==0) return "E";
-    static char buf[16];
-    snprintf(buf, sizeof(buf), "%s", cn);
-    return buf;
+    return cn;
 }
 
 void weather_apply_to_ui(void) {
-    if (!s_weather_valid) { ESP_LOGW(TAG, "no valid weather data to apply"); return; }
-    
-    // 从 fxDate 提取月-日格式 "MM-DD"
+    if (!s_weather_valid) { ESP_LOGW(TAG, "no valid weather data"); return; }
     char date_str[8] = "";
     if (s_weather_fxdate[0] && strlen(s_weather_fxdate) >= 10) {
-        date_str[0] = s_weather_fxdate[5];  // 月十位
-        date_str[1] = s_weather_fxdate[6];  // 月个位
-        date_str[2] = '-';
-        date_str[3] = s_weather_fxdate[8];  // 日十位
-        date_str[4] = s_weather_fxdate[9];  // 日个位
-        date_str[5] = '\0';
-    }
-    
-    const char *en_weather = translate_weather(s_weather_text);
-    const char *en_wind = translate_wind(s_weather_wind_dir);
-    
+        date_str[0] = s_weather_fxdate[5]; date_str[1] = s_weather_fxdate[6];
+        date_str[2] = '-'; date_str[3] = s_weather_fxdate[8]; date_str[4] = s_weather_fxdate[9]; date_str[5] = '\0'; }
     char weather_line[48];
-    if (date_str[0]) {
-        snprintf(weather_line, sizeof(weather_line), "%s %s", date_str, en_weather);
-    } else {
-        snprintf(weather_line, sizeof(weather_line), "%s", en_weather);
-    }
-    char temp_hi_lo[32];
-    snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%dC", s_weather_temp_min, s_weather_temp_max);
-    char info_str[64];
-    snprintf(info_str, sizeof(info_str), "%s %s Hum:%d%%", en_wind, s_weather_wind_scale, s_weather_humidity);
-    
+    if (date_str[0]) snprintf(weather_line, sizeof(weather_line), "%s %s", date_str, s_weather_text);
+    else snprintf(weather_line, sizeof(weather_line), "%s", s_weather_text);
+    char temp_hi_lo[32]; snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%d", s_weather_temp_min, s_weather_temp_max);
+    char info_str[64]; snprintf(info_str, sizeof(info_str), "%s %s R:%s", s_weather_wind_dir, s_weather_wind_scale, s_weather_sunrise);
     lvgl_ui_set_weather(weather_line, temp_hi_lo, info_str);
-    ESP_LOGI(TAG, "weather UI: %s, %s, %s", weather_line, temp_hi_lo, info_str);
+    ESP_LOGI(TAG, "UI: %s, %s, %s", weather_line, temp_hi_lo, info_str);
 }
 
 static SemaphoreHandle_t s_weather_done = NULL;
 static void weather_poll_task(void *arg) {
-    (void)arg;
-    weather_poll_once();
-    xSemaphoreGive(s_weather_done);
-    vTaskDelete(NULL); }
-
+    (void)arg; weather_poll_once(); xSemaphoreGive(s_weather_done); vTaskDelete(NULL); }
 void weather_poll_once_blocking(void) {
     if (!s_weather_done) s_weather_done = xSemaphoreCreateBinary();
     xTaskCreate(weather_poll_task, "weather_poll", 16384, NULL, 5, NULL);

@@ -120,7 +120,7 @@ static void on_wifi_connected(void)
     // 启动时间同步（在后台任务中进行，不阻塞）
     hw_time_sync_start();
 
-    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    // esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
     uint64_t gpio_wakeup = esp_sleep_get_gpio_wakeup_status();
     if (gpio_wakeup & (1ULL << WAKE_BTN_GPIO)) {
         handle_io5_wakeup();

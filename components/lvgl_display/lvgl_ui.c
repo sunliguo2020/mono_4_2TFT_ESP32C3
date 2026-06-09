@@ -214,11 +214,9 @@ static void ui_task(void *arg) {
         if (guider_ui.screen_main_label_20) {
           lv_label_set_text(guider_ui.screen_main_label_20, msg.data.weather.temp);
         }
-        if (guider_ui.screen_main_label_19) {
-          lv_label_set_text(guider_ui.screen_main_label_19, "");
-        }
+        // screen_main_label_18 - ℃符号（使用 weather_20 字体）
         if (guider_ui.screen_main_label_18) {
-          lv_label_set_text(guider_ui.screen_main_label_18, "");
+          lv_label_set_text(guider_ui.screen_main_label_18, "℃");
         }
         // ???????
         if (guider_ui.screen_main_label_run_hour) {
@@ -230,9 +228,9 @@ static void ui_task(void *arg) {
         if (guider_ui.screen_main_label_2) {
           lv_label_set_text(guider_ui.screen_main_label_2, "");
         }
-        // ???????
+        // 隐藏旧天气标签（数据已分行显示在其他标签上）
         if (guider_ui.screen_main_label_weather) {
-          lv_label_set_text(guider_ui.screen_main_label_weather, msg.data.weather.humi);
+          lv_obj_add_flag(guider_ui.screen_main_label_weather, LV_OBJ_FLAG_HIDDEN);
         }
         break;
       default:

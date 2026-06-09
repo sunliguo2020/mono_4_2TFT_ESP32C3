@@ -11,6 +11,9 @@
 #include "gui_guider.h"
 #include "setup_scr_screen_main_bottom.h"
 
+// 天气字体声明
+LV_FONT_DECLARE(lv_font_weather_20);
+
 void setup_scr_screen_main_bottom(lv_ui *ui)
 {
     // ============================================================
@@ -70,7 +73,7 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     lv_label_set_long_mode(ui->screen_main_label_5, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_5, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_5, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_5, &lv_font_SourceHanSansSCBold_20, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_5, &lv_font_weather_20, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_5, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_5, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_5, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -80,33 +83,51 @@ void setup_scr_screen_main_bottom(lv_ui *ui)
     lv_obj_set_style_pad_left(ui->screen_main_label_5, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_5, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
-    // screen_main_label_20 - 温度范围（第二行，使用中文字体以支持"~"和"°C"符号）
+    // screen_main_label_20 - 温度数字+℃（第二行，使用 40px 数码管字体，居中）
     ui->screen_main_label_20 = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_20, 0, 40);
+    lv_obj_set_pos(ui->screen_main_label_20, 0, 35);
     lv_obj_set_size(ui->screen_main_label_20, 290, 60);
-    lv_label_set_text(ui->screen_main_label_20, "");
+    lv_label_set_text(ui->screen_main_label_20, "16~28");
     lv_label_set_long_mode(ui->screen_main_label_20, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_20, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_20, &lv_font_SourceHanSansSCBold_20, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_20, &lv_font_SMG_40, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_20, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_20, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_top(ui->screen_main_label_20, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_right(ui->screen_main_label_20, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_bottom(ui->screen_main_label_20, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_left(ui->screen_main_label_20, 3, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_main_label_20, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+
+    // screen_main_label_18 - ℃符号（第二行，紧跟在数字右侧）
+    ui->screen_main_label_18 = lv_label_create(ui->screen_main_cont_bottom);
+    lv_obj_set_pos(ui->screen_main_label_18, 245, 40);
+    lv_obj_set_size(ui->screen_main_label_18, 40, 40);
+    lv_label_set_text(ui->screen_main_label_18, "℃");
+    lv_label_set_long_mode(ui->screen_main_label_18, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_border_width(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui->screen_main_label_18, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_18, &lv_font_weather_20, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui->screen_main_label_18, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui->screen_main_label_18, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_shadow_width(ui->screen_main_label_18, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
 
     // screen_main_label_run_hour - 风向风力湿度（第三行）
     ui->screen_main_label_run_hour = lv_label_create(ui->screen_main_cont_bottom);
-    lv_obj_set_pos(ui->screen_main_label_run_hour, 0, 105);
+    lv_obj_set_pos(ui->screen_main_label_run_hour, 0, 100);
     lv_obj_set_size(ui->screen_main_label_run_hour, 290, 42);
     lv_label_set_text(ui->screen_main_label_run_hour, "");
     lv_label_set_long_mode(ui->screen_main_label_run_hour, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_border_width(ui->screen_main_label_run_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_main_label_run_hour, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_main_label_run_hour, &lv_font_SourceHanSansSCBold_17, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_main_label_run_hour, &lv_font_weather_20, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_main_label_run_hour, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui->screen_main_label_run_hour, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_run_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
