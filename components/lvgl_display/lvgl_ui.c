@@ -54,9 +54,10 @@ typedef struct {
       uint32_t percent;
     } bat;
     struct {
-      char text[16];
-      char temp[16];
-      char humi[32];
+      char text[16];      /* today weather desc: "06-10 晴 南风 3" */
+      char temp[16];      /* today temp: "16~28" */
+      char text_tmrw[32]; /* tomorrow weather desc: "06-11 多云 北风 2" */
+      char temp_tmrw[16]; /* tomorrow temp: "18~30" */
     } weather;
   } data;
 } ui_msg_t;
@@ -206,21 +207,29 @@ static void ui_task(void *arg) {
         }
         break;
       case UI_MSG_WEATHER:
-        // 第一行：今天日期+天气+风向风力（合并显示）
-        if (guider_ui.screen_main_label_5) {
-          lv_label_set_text(guider_ui.screen_main_label_5, msg.data.weather.text);
+        // 左侧：今日天气描述 (screen_main_label_weather)
+        if (guider_ui.screen_main_label_weather) {
+          lv_label_set_text(guider_ui.screen_main_label_weather, msg.data.weather.text);
         }
-        // 第二行：温度数字（SMG_40 数码管字体）
+        // 左侧：今日温度 (screen_main_label_20)
         if (guider_ui.screen_main_label_20) {
           lv_label_set_text(guider_ui.screen_main_label_20, msg.data.weather.temp);
         }
-        // screen_main_label_18 - ℃符号
+        // 左侧：℃符号 (screen_main_label_18)
         if (guider_ui.screen_main_label_18) {
           lv_label_set_text(guider_ui.screen_main_label_18, "℃");
         }
-        // screen_main_label_2 - 第二天天气（日期+天气+温度）
-        if (guider_ui.screen_main_label_2) {
-          lv_label_set_text(guider_ui.screen_main_label_2, msg.data.weather.humi);
+        // 右侧：明日温度 (screen_main_label_19)
+        if (guider_ui.screen_main_label_19) {
+          lv_label_set_text(guider_ui.screen_main_label_19, msg.data.weather.temp_tmrw);
+        }
+        // 右侧：℃符号 (screen_main_label_21)
+        if (guider_ui.screen_main_label_21) {
+          lv_label_set_text(guider_ui.screen_main_label_21, "℃");
+        }
+        // 右侧：明日天气描述 (screen_main_label_weather_tmrw)
+        if (guider_ui.screen_main_label_weather_tmrw) {
+          lv_label_set_text(guider_ui.screen_main_label_weather_tmrw, msg.data.weather.text_tmrw);
         }
         // 隐藏不再使用的旧标签
         if (guider_ui.screen_main_label_run_hour) {
@@ -228,9 +237,6 @@ static void ui_task(void *arg) {
         }
         if (guider_ui.screen_main_label_run_min) {
           lv_obj_add_flag(guider_ui.screen_main_label_run_min, LV_OBJ_FLAG_HIDDEN);
-        }
-        if (guider_ui.screen_main_label_weather) {
-          lv_obj_add_flag(guider_ui.screen_main_label_weather, LV_OBJ_FLAG_HIDDEN);
         }
         break;
       default:
@@ -370,13 +376,15 @@ void lvgl_ui_set_presence(bool present) {
 }
 
 // Update weather label.
-void lvgl_ui_set_weather(const char *text, const char *temp, const char *icon) {
+void lvgl_ui_set_weather(const char *today_text, const char *today_temp, const char *tomorrow_text, const char *tomorrow_temp) {
   ui_msg_t msg = {.type = UI_MSG_WEATHER};
   snprintf(msg.data.weather.text, sizeof(msg.data.weather.text), "%s",
-           text ? text : "");
+           today_text ? today_text : "");
   snprintf(msg.data.weather.temp, sizeof(msg.data.weather.temp), "%s",
-           temp ? temp : "");
-  snprintf(msg.data.weather.humi, sizeof(msg.data.weather.humi), "%s",
-           icon ? icon : "");
+           today_temp ? today_temp : "");
+  snprintf(msg.data.weather.text_tmrw, sizeof(msg.data.weather.text_tmrw), "%s",
+           tomorrow_text ? tomorrow_text : "");
+  snprintf(msg.data.weather.temp_tmrw, sizeof(msg.data.weather.temp_tmrw), "%s",
+           tomorrow_temp ? tomorrow_temp : "");
   ui_queue_send(&msg);
 }

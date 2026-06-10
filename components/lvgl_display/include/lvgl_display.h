@@ -24,7 +24,7 @@ void lvgl_ui_set_battery(uint32_t millivolt, uint32_t percent);
 void lvgl_ui_pause(bool pause);
 void lvgl_ui_show_sleep_screen(bool show_sleep);
 void lvgl_ui_set_presence(bool present);
-void lvgl_ui_set_weather(const char *text, const char *temp, const char *icon);
+void lvgl_ui_set_weather(const char *today_text, const char *today_temp, const char *tomorrow_text, const char *tomorrow_temp);
 #ifdef __cplusplus
 }
 #endif

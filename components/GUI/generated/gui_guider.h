@@ -43,6 +43,7 @@ typedef struct
 	lv_obj_t *screen_main_cont_temp_humi;
 	lv_obj_t *screen_main_cont_bottom;
 	lv_obj_t *screen_main_label_weather;
+	lv_obj_t *screen_main_label_weather_tmrw;
 	lv_obj_t *screen_main_cont_top_bar;
 	lv_obj_t *screen_main_label_wifi;
 	lv_obj_t *screen_main_img_1;
@@ -116,6 +117,7 @@ LV_IMAGE_DECLARE(_sleep2_RGB565_301x399);
 
 LV_FONT_DECLARE(lv_font_SMG_32)
 LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_24)
+LV_FONT_DECLARE(lv_font_SMG_53)
 LV_FONT_DECLARE(lv_font_SMG_90)
 LV_FONT_DECLARE(lv_font_SMG_40)
 LV_FONT_DECLARE(lv_font_SourceHanSansSCBold_38)

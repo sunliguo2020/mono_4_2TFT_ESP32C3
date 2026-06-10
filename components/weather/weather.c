@@ -345,18 +345,25 @@ void weather_apply_to_ui(void) {
     char temp_hi_lo[32];
     snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%d", s_weather_temp_min, s_weather_temp_max);
 
+    // 明日天气描述
     char date2[8] = "";
     fmt_date_short(date2, sizeof(date2), s_weather_fxdate_tmrw);
-    char weather_line2[48];
+    char weather_line2[96] = "";
     if (date2[0] && s_weather_text_tmrw[0])
-        snprintf(weather_line2, sizeof(weather_line2), "%s %s %d~%d℃",
-                 date2, s_weather_text_tmrw, s_weather_temp_min_tmrw, s_weather_temp_max_tmrw);
+        snprintf(weather_line2, sizeof(weather_line2), "%s %s %s %s",
+                 date2, s_weather_text_tmrw, s_weather_wind_dir_tmrw, s_weather_wind_scale_tmrw);
+    else if (s_weather_text_tmrw[0])
+        snprintf(weather_line2, sizeof(weather_line2), "%s %s %s",
+                 s_weather_text_tmrw, s_weather_wind_dir_tmrw, s_weather_wind_scale_tmrw);
     else
         weather_line2[0] = '\0';
+    char temp_tmrw[32] = "";
+    if (s_weather_temp_min_tmrw != 0 || s_weather_temp_max_tmrw != 0)
+        snprintf(temp_tmrw, sizeof(temp_tmrw), "%d~%d", s_weather_temp_min_tmrw, s_weather_temp_max_tmrw);
 
-    lvgl_ui_set_weather(weather_line, temp_hi_lo, weather_line2);
-    ESP_LOGI(TAG, "UI day1: %s, %s", weather_line, temp_hi_lo);
-    if (weather_line2[0]) ESP_LOGI(TAG, "UI day2: %s", weather_line2);
+    lvgl_ui_set_weather(weather_line, temp_hi_lo, weather_line2, temp_tmrw);
+    ESP_LOGI(TAG, "today: %s, %s", weather_line, temp_hi_lo);
+    if (weather_line2[0]) ESP_LOGI(TAG, "tomorrow: %s, %s", weather_line2, temp_tmrw);
 }
 
 int weather_get_temp_min(void) { return s_weather_temp_min; }
