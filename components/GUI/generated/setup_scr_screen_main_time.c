@@ -104,8 +104,8 @@ void setup_scr_screen_main_time(lv_ui *ui)
 
     //Write codes screen_main_label_time_hour
     ui->screen_main_label_time_hour = lv_label_create(ui->screen_main_cont_2);
-    lv_obj_set_pos(ui->screen_main_label_time_hour, 40, -10);
-    lv_obj_set_size(ui->screen_main_label_time_hour, 80, 85);
+    lv_obj_set_pos(ui->screen_main_label_time_hour, -1, -10);
+    lv_obj_set_size(ui->screen_main_label_time_hour, 140, 85);
     lv_label_set_text(ui->screen_main_label_time_hour, "88");
     lv_label_set_long_mode(ui->screen_main_label_time_hour, LV_LABEL_LONG_WRAP);
 
@@ -117,7 +117,7 @@ void setup_scr_screen_main_time(lv_ui *ui)
     lv_obj_set_style_text_opa(ui->screen_main_label_time_hour, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_main_label_time_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_main_label_time_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui->screen_main_label_time_hour, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui->screen_main_label_time_hour, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_time_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui->screen_main_label_time_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_right(ui->screen_main_label_time_hour, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -127,8 +127,8 @@ void setup_scr_screen_main_time(lv_ui *ui)
 
     //Write codes screen_main_label_time_min
     ui->screen_main_label_time_min = lv_label_create(ui->screen_main_cont_2);
-    lv_obj_set_pos(ui->screen_main_label_time_min, 170, -10);
-    lv_obj_set_size(ui->screen_main_label_time_min, 80, 82);
+    lv_obj_set_pos(ui->screen_main_label_time_min, 150, -10);
+    lv_obj_set_size(ui->screen_main_label_time_min, 136, 82);
     lv_label_set_text(ui->screen_main_label_time_min, "88");
     lv_label_set_long_mode(ui->screen_main_label_time_min, LV_LABEL_LONG_WRAP);
 
@@ -140,7 +140,7 @@ void setup_scr_screen_main_time(lv_ui *ui)
     lv_obj_set_style_text_opa(ui->screen_main_label_time_min, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_main_label_time_min, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_main_label_time_min, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui->screen_main_label_time_min, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui->screen_main_label_time_min, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui->screen_main_label_time_min, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_top(ui->screen_main_label_time_min, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_right(ui->screen_main_label_time_min, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -150,8 +150,8 @@ void setup_scr_screen_main_time(lv_ui *ui)
 
     //Write codes screen_main_label_1
     ui->screen_main_label_1 = lv_label_create(ui->screen_main_cont_2);
-    lv_obj_set_pos(ui->screen_main_label_1, 133, -20);
-    lv_obj_set_size(ui->screen_main_label_1, 24, 82);
+    lv_obj_set_pos(ui->screen_main_label_1, 131, -20);
+    lv_obj_set_size(ui->screen_main_label_1, 22, 82);
     lv_label_set_text(ui->screen_main_label_1, ":");
     lv_label_set_long_mode(ui->screen_main_label_1, LV_LABEL_LONG_WRAP);
 
