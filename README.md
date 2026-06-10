@@ -99,6 +99,38 @@ Error while getting targets from ESP-IDF: Error: File not found: C:\Users\sunlig
 
 烧录的时候，需要按下重置按钮。
 
+### 7、字体补全
+
+如果屏幕显示中出现方框（中文字体缺失），说明 GUI Guider 生成的字体文件未包含这些字符。**三种修复方法**：
+
+#### 方法一：GUI Guider 中重新生成
+
+1. 打开 GUI Guider 项目文件
+2. 在 UI 设计界面中，找到对应的文本输入框
+3. 输入完整的中文文本（如"今日天气"、"明日天气"）
+4. 点击"Generate Code"重新生成代码
+5. 重新编译烧录即可
+
+#### 方法二：命令行工具 lv_font_conv
+
+```
+# 从字体文件中提取并添加缺失字符
+lv_font_conv --font SourceHanSansSC-Bold.otf --size 24 \
+  --font FontAwesome5-Solid+Brands+Regular.woff --size 16 --format lvgl \
+  --symbols "今日天气明℃" \
+  --output lv_font_weather_24.c
+```
+
+#### 方法三：代码中改用英文字体（快速解决方案）
+
+如果只是少数几个中文字符需要显示，可以直接在代码中将字体改为 `&lv_font_montserratMedium_16`（英文字体，始终可用），同时将文本改为英文：
+
+```c
+lv_label_set_text(ui->screen_main_label_5, "W\nE\nA\nT\nH\nE\nR");
+lv_obj_set_style_text_font(ui->screen_main_label_5, &lv_font_montserratMedium_16, 0);
+```
+
+
 ## 屏幕布局
 
 本设备使用 4.2 寸鱼鹰全反射类墨水屏，分辨率 300×400 像素。主屏幕布局如下：

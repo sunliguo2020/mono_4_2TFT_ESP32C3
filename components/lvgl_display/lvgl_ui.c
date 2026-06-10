@@ -54,7 +54,7 @@ typedef struct {
       uint32_t percent;
     } bat;
     struct {
-      char text[16];      /* today weather desc: "06-10 晴 南风 3" */
+      char date[16];      /* today date: "06-09" */
       char temp[16];      /* today temp: "16~28" */
       char text_tmrw[32]; /* tomorrow weather desc: "06-11 多云 北风 2" */
       char temp_tmrw[16]; /* tomorrow temp: "18~30" */
@@ -207,9 +207,9 @@ static void ui_task(void *arg) {
         }
         break;
       case UI_MSG_WEATHER:
-        // 左侧：今日天气描述 (screen_main_label_weather)
+        // 左侧：今日日期 (screen_main_label_weather)
         if (guider_ui.screen_main_label_weather) {
-          lv_label_set_text(guider_ui.screen_main_label_weather, msg.data.weather.text);
+          lv_label_set_text(guider_ui.screen_main_label_weather, msg.data.weather.date);
         }
         // 左侧：今日温度 (screen_main_label_20)
         if (guider_ui.screen_main_label_20) {
@@ -376,10 +376,10 @@ void lvgl_ui_set_presence(bool present) {
 }
 
 // Update weather label.
-void lvgl_ui_set_weather(const char *today_text, const char *today_temp, const char *tomorrow_text, const char *tomorrow_temp) {
+void lvgl_ui_set_weather(const char *today_date, const char *today_temp, const char *tomorrow_text, const char *tomorrow_temp) {
   ui_msg_t msg = {.type = UI_MSG_WEATHER};
-  snprintf(msg.data.weather.text, sizeof(msg.data.weather.text), "%s",
-           today_text ? today_text : "");
+  snprintf(msg.data.weather.date, sizeof(msg.data.weather.date), "%s",
+           today_date ? today_date : "");
   snprintf(msg.data.weather.temp, sizeof(msg.data.weather.temp), "%s",
            today_temp ? today_temp : "");
   snprintf(msg.data.weather.text_tmrw, sizeof(msg.data.weather.text_tmrw), "%s",
