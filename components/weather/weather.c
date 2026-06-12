@@ -336,7 +336,7 @@ void weather_apply_to_ui(void) {
     char date1[8] = "";
     fmt_date_short(date1, sizeof(date1), s_weather_fxdate);
     char temp_hi_lo[32];
-    snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d.%d", s_weather_temp_min, s_weather_temp_max);
+    snprintf(temp_hi_lo, sizeof(temp_hi_lo), "%d~%d", s_weather_temp_min, s_weather_temp_max);
 
     // 明日天气描述
     char date2[8] = "";
@@ -352,7 +352,7 @@ void weather_apply_to_ui(void) {
         weather_line2[0] = '\0';
     char temp_tmrw[32] = "";
     if (s_weather_temp_min_tmrw != 0 || s_weather_temp_max_tmrw != 0)
-        snprintf(temp_tmrw, sizeof(temp_tmrw), "%d.%d", s_weather_temp_min_tmrw, s_weather_temp_max_tmrw);
+        snprintf(temp_tmrw, sizeof(temp_tmrw), "%d~%d", s_weather_temp_min_tmrw, s_weather_temp_max_tmrw);
 
     lvgl_ui_set_weather(date1, temp_hi_lo, weather_line2, temp_tmrw);
     ESP_LOGI(TAG, "today: %s, %s", date1, temp_hi_lo);
