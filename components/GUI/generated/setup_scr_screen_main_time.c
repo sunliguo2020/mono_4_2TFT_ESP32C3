@@ -11,6 +11,8 @@
 #include "gui_guider.h"
 #include "setup_scr_screen_main_time.h"
 
+LV_FONT_DECLARE(lv_font_montserratMedium_24);
+
 void setup_scr_screen_main_time(lv_ui *ui)
 {
     // ============================================================
